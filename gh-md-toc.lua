@@ -12,9 +12,19 @@ function parser.flag2(_, f, ...)
   return _:flag(f, ...)
 end
 
+function append_key(args, _, x)
+  local t = args[_]
+  t[x] = true
+end
+
+function append_key_value(args, _, xs)
+  local t = args[_]
+  t[xs[1]] = xs[2]
+end
+
 parser:argument('input', 'Input file'):args'*'
 --TODO parser:option('--', 'Input file'):args('*')
-parser:flag2('-a --after-toc', 'Generates the table of contents with what is after value of --label-toc-stop')
+parser:flag2('-a --after-toc', 'Generates the table of contents with what is after value of --label-stop-toc')
 parser:option('-i --inplace', 'Edit files in place (makes backup if SUFFIX supplied)')
   :argname'<suffix>':args('?')
   :action(function(args, _, suffix)
@@ -24,22 +34,24 @@ parser:flag('--noinplace', 'Disable --in-place'):target'inplace':action('store_f
 parser:flag2('-p --print', 'Display table of contents on stdout', true)
 parser:flag2('-P --print-filename', 'Display file name if --print')
 parser:flag2('-g --one-toc', 'With --inplace, insert TOC into the first input file')
---[[TODO]]parser:option('-f --format', 'Table of contents format', '{idepth}. [{title}](#{id})'):argname'<format>'
+--[[TODO]]parser:option('-n --empty-id-format', 'Table of contents item format for an empty id', '{idepth}. [{title}](#{id})'):argname'<format>'
+--[[TODO]]parser:option('-f --format', 'Table of contents item format', '{idepth}. [{title}](#{id})'):argname'<format>'
 --[[TODO]]parser:option('-f1 --format1', 'Same -f, but for only h1'):argname'<format>'
 --[[TODO]]parser:option('-f2 --format2', 'Same -f, but for only h2'):argname'<format>'
 --[[TODO]]parser:option('-f3 --format3', 'Same -f, but for only h3'):argname'<format>'
 --[[TODO]]parser:option('-f4 --format4', 'Same -f, but for only h4'):argname'<format>'
 --[[TODO]]parser:option('-f5 --format5', 'Same -f, but for only h5'):argname'<format>'
 --[[TODO]]parser:option('-f6 --format6', 'Same -f, but for only h6'):argname'<format>'
---[[TODO]]parser:option('-d --maxdepth', 'Do not extract title at levels greater than level'):convert(tonumber)
---[[TODO]]parser:option('-D --mindepth', 'Do not extract title at levels less than level'):convert(tonumber)
+parser:option('-d --maxdepth', 'Do not extract title at levels greater than level', 6):convert(tonumber)
+parser:option('-D --mindepth', 'Do not extract title at levels less than level', 1):convert(tonumber)
 --[[TODO]]parser:flag2('--origin-md', 'Title from original mardown, otherwise is HTML format (HTML by default)')
 --[[TODO]]parser:flag2('--html-title', 'Add HTML title attribute (enabled by default)', true)
---[[TODO]]parser:option('-e --exclude', 'Exclude title'):argname'<title>':count('*')
---[[TODO]]parser:option('--label-ignore', 'Ignore the title under this line', '<!-- toc-ignore -->'):argname'<line>'
---[[TODO]]parser:option('--label-title', 'Rename the title under this line', '<!-- toc-title .* -->'):argname'<line>'
-parser:option('--label-toc-start', 'Writes the table of contents between label-toc-start and label-toc-stop (only with --inplace)', '<!-- toc -->'):argname'<line>'
-parser:option('--label-toc-stop', 'Writes the table of contents between label-toc-start and label-toc-stop (only with --inplace)', '<!-- /toc -->'):argname'<line>'
+parser:option('-e --exclude', 'Exclude title', {}):argname'<title>':count('*'):action(append_key)
+parser:option('-r --rename', 'Exclude title', {}):argname'<title> <newtitle>':count('*'):args(2):action(append_key_value)
+parser:option('--label-ignore-title', 'Ignore the title under this line', '<!-- toc-ignore -->'):argname'<line>'
+parser:option('--label-rename-title', 'Rename the title under this line', '<!-- toc-title (.*) -->'):argname'<line>'
+parser:option('--label-start-toc', 'Writes the table of contents between label-start-toc and label-stop-toc (only with --inplace)', '<!-- toc -->'):argname'<line>'
+parser:option('--label-stop-toc', 'Writes the table of contents between label-start-toc and label-stop-toc (only with --inplace)', '<!-- /toc -->'):argname'<line>'
 parser:option('--url-api', 'Github API URL', 'https://api.github.com/markdown/raw'):argname'<url>'
 parser:option('--version', 'Output version information and exit'):action(function()
   print('gh-md-toc 1.0.1') -- TODO
@@ -58,14 +70,27 @@ for k,v in pairs(args) do
   end
 end
 
-function readtitles(filename, contents, titles, foundtoc, tocstop)
+
+local mindepth = args.mindepth
+local maxdepth = args.maxdepth
+local toc_stop = args.label_stop_toc
+local excluded = args.exclude
+local renamed = args.rename
+local label_ignore_title = args.label_ignore_title
+local label_rename_title = args.label_rename_title
+if #label_ignore_title == 0 then
+  label_ignore_title = nil
+end
+label_rename_title = label_rename_title and '^'..label_rename_title..'$' or nil
+
+function readtitles(filename, contents, titles, tocfound)
   local f, err = io.open(filename)
   if not f then
     error(err)
   end
 
   local incode = false
-  local previous
+  local previous, previous2 = '', ''
 
   while true do
     local line = f:read()
@@ -81,28 +106,38 @@ function readtitles(filename, contents, titles, foundtoc, tocstop)
       incode = line:match'^ ? ? ?(```+)'
       if incode then
         incode = '^ ? ? ?'..incode..'[ \t]*$'
-      elseif foundtoc then
+      elseif tocfound then
         if not incode then
           local lvl, title = line:match'^ ? ? ?(#+ )[ \t]*(.*)[ \t]*$'
-          if title then
+          local prev = previous
+          if not title then
+            prev = previous2
+            if line:find'^ ? ? ?=+[ \t]*$' then
+              title = previous:match'^ ? ? ?([^ ].*)[ \t]*$'
+              lvl = '# '
+            elseif line:find'^ ? ? ?%-+[ \t]*$' then
+              title = previous:match'^ ? ? ?([^ ].*)[ \t]*$'
+              lvl = '## '
+            end
+          end
+
+          if title
+          and #lvl < maxdepth+2
+          and #lvl > mindepth
+          and not excluded[title]
+          and prev ~= label_ignore_title
+          then
+            title = renamed[title] or title
+            title = (label_rename_title and prev:match(label_rename_title)) or title
             titles[#titles+1] = lvl .. title
-          elseif line:find'^ ? ? ?=+[ \t]*$' then
-            title = previous:match'^ ? ? ?([^ ].*)[ \t]*$'
-            if title then
-              titles[#titles+1] = '# '..title
-            end
-          elseif line:find'^ ? ? ?%-+[ \t]*$' then
-            title = previous:match'^ ? ? ?([^ ].*)[ \t]*$'
-            if title then
-              titles[#titles+1] = '## '..title
-            end
           end
         end
       elseif line == tocstop then
-        foundtoc = true
+        tocfound = true
       end
     end
 
+    previous2 = previous
     previous = line
   end
 end
@@ -114,24 +149,19 @@ if #filenames == 0 then
   filenames = {'README.md'}
 end
 
-local foundtoc = not args.after_toc
+local tocfound = not args.after_toc
 local inplace = args.inplace
 local one_toc = args.one_toc
-local toc_stop = args.label_toc_stop
 local titles = {}
 local titles_start_i = {}
-local contents_first_file
-local contents = not inplace and nullcontents
+local contents_first_file = {}
+local contents = inplace and contents_first_file or nullcontents
 
 for _,filename in ipairs(filenames) do
-  if not contents then
-    contents = {}
-    contents_first_file = contents
-  end
-  readtitles(filename, contents, titles, foundtoc, toc_stop)
+  readtitles(filename, contents, titles, tocfound)
   titles_start_i[#titles_start_i+1] = #titles
   contents = nullcontents
-  foundtoc = foundtoc or one_toc
+  tocfound = tocfound or one_toc
 end
 
 local url_api = args.url_api
@@ -160,7 +190,6 @@ if url_api ~= '' then
     title = title:gsub('<a.->(.-)</a>', '%1'):gsub('\n', '')
     H[lvl] = (H[lvl] or 0) + 1
     H[lvl+1] = 0
-    -- TODO: id == ''
     toc[#toc+1] = string.format('%s%d. [%s](#%s)\n',
       pre:sub(0, (lvl-1)*4),
       H[lvl],
@@ -170,8 +199,8 @@ if url_api ~= '' then
   end
 
   if inplace then
-    local toc_start = args.label_toc_start:gsub('[-?*+%[%]%%()]', '%%%1')
-    local toc_stop = args.label_toc_stop:gsub('[-?*+%[%]%%()]', '%%%1')
+    local toc_start = args.label_start_toc:gsub('[-?*+%[%]%%()]', '%%%1')
+    local toc_stop = args.label_stop_toc:gsub('[-?*+%[%]%%()]', '%%%1')
     local contents, n = table.concat(contents_first_file, '\n'):gsub(
       '('..toc_start..'\n).-('..toc_start..')',
       '%1' .. table.concat(toc):gsub('%%', '%%%%') .. '%2'
