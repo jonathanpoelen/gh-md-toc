@@ -2,11 +2,13 @@
 
 - Lua
 - [Lua-cURLv3](https://github.com/Lua-cURL/Lua-cURLv3)
+- argparse
 
 # Installation
 
 ```bash
 luarocks install Lua-cURL
+luarocks install argparse
 ```
 
 <!-- luarocks install Lua-cURL --server=https://luarocks.org/dev -->
@@ -26,5 +28,5 @@ eval `luarocks path`
 # Usage
 
 ```bash
-./gh-md-toc [-h] [-u] [-a] [README.md]
+./gh-md-toc [OPTIONS] [README.md [...]]
 ```
