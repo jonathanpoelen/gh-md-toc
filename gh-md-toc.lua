@@ -1,11 +1,9 @@
 #!/usr/bin/env lua
-
 local argparse = require'argparse'
 
 local parser = argparse(arg[0], "Github Markdown TOC (table of contents)")
 function parser.flag2(_, f, ...)
   local name = f:match'%-%-([-_%w]+)'
-  print(name)
   _:flag('--no'..name, 'Disable --'..name)
     :target(name:gsub('%-', '_'))
     :action'store_false'
@@ -34,18 +32,37 @@ parser:flag('--noinplace', 'Disable --in-place'):target'inplace':action('store_f
 parser:flag2('-p --print', 'Display table of contents on stdout', true)
 parser:flag2('-P --print-filename', 'Display file name if --print')
 parser:flag2('-g --one-toc', 'With --inplace, insert TOC into the first input file')
---[[TODO]]parser:option('-n --empty-id-format', 'Table of contents item format for an empty id', '{idepth}. [{title}](#{id})'):argname'<format>'
---[[TODO]]parser:option('-f --format', 'Table of contents item format', '{idepth}. [{title}](#{id})'):argname'<format>'
---[[TODO]]parser:option('-f1 --format1', 'Same -f, but for only h1'):argname'<format>'
---[[TODO]]parser:option('-f2 --format2', 'Same -f, but for only h2'):argname'<format>'
---[[TODO]]parser:option('-f3 --format3', 'Same -f, but for only h3'):argname'<format>'
---[[TODO]]parser:option('-f4 --format4', 'Same -f, but for only h4'):argname'<format>'
---[[TODO]]parser:option('-f5 --format5', 'Same -f, but for only h5'):argname'<format>'
---[[TODO]]parser:option('-f6 --format6', 'Same -f, but for only h6'):argname'<format>'
+parser:option('-f --format', [[Table of contents item format:
+  value:
+    {idepth}  depth level of the title
+    {title}  html title
+    {id}  html id attribute
+    {i}  title number
+    {mdtitle}  original title
+    {titleattr}  title attribute
+    {*text}  text is duplicated by lvl-1
+    {-n:sep1:sep2:...}  concat depth from `n` level with sep1, then sep2, etc.
+      with {-} for lvl = 4
+        1.2.3.4.
+      with {-:\:: * :-} for lvl = 4
+        1:2 * 3-4-
+      with {-3} for lvl = 4
+        3.4.
+
+  condition:
+    {?!cond:ok:ko}  if else
+    {?cond:ok}  if
+    {!cond:ko}  if not
+
+  cond: id, titleattr, isfirst or a the depth level of the title (1,2,etc)
+
+  specialchars:
+    \t  tab
+    \n  newline
+    \x  x (where x is any character) represents the character x
+]], '{idepth}. {?!id:[{title}](#{id}{?titleattr: {titleattr}}):{title}}\\n'):argname'<format>'
 parser:option('-d --maxdepth', 'Do not extract title at levels greater than level', 6):convert(tonumber)
 parser:option('-D --mindepth', 'Do not extract title at levels less than level', 1):convert(tonumber)
---[[TODO]]parser:flag2('--origin-md', 'Title from original mardown, otherwise is HTML format (HTML by default)')
---[[TODO]]parser:flag2('--html-title', 'Add HTML title attribute (enabled by default)', true)
 parser:option('-e --exclude', 'Exclude title', {}):argname'<title>':count('*'):action(append_key)
 parser:option('-r --rename', 'Exclude title', {}):argname'<title> <newtitle>':count('*'):args(2):action(append_key_value)
 parser:option('--label-ignore-title', 'Ignore the title under this line', '<!-- toc-ignore -->'):argname'<line>'
@@ -60,16 +77,127 @@ end)
 
 local args = parser:parse()
 
-for k,v in pairs(args) do
-  print(k,v,type(v))
-  if type(v) == 'table' then
-    print(#v)
-    for k2,v2 in pairs(v) do
-      print('',k2,v2,type(v2))
+-- for k,v in pairs(args) do
+--   print(k,v,type(v))
+--   if type(v) == 'table' then
+--     print(#v)
+--     for k2,v2 in pairs(v) do
+--       print('',k2,v2,type(v2))
+--     end
+--   end
+-- end
+
+function Formater(str)
+  local tos = function(x)
+    return function(t)
+      t[#t+1] = x
     end
   end
-end
 
+  local todata = function(x)
+    return function(t, datas)
+      t[#t+1] = datas[x] or ''
+    end
+  end
+
+  local toidepth = function()
+    return function(t, datas)
+      t[#t+1] = datas.H[datas.lvl]
+    end
+  end
+
+  local toprefixlvl = function(x)
+    local n = #x
+    x = x:rep(5)
+    return function(t, datas)
+      t[#t+1] = x:sub(1, (datas.lvl-1)*n)
+    end
+  end
+
+  local toarbonum = function(n, seps)
+    x = tonumber(x)
+    local sep = seps[#seps] or '.'
+    return function(t, datas)
+      local ts = {}
+      local it = #t + 1
+      for i=n,datas.lvl do
+        t[it] = datas.H[i]
+        t[it+1] = seps[i-n+1] or sep
+        it = it + 2
+      end
+    end
+  end
+
+  local toisdata = function(x)
+    return function(datas)
+      return datas[x]
+    end
+  end
+
+  local toislvl = function(x)
+    x = tonumber(x)
+    return function(datas)
+      return datas.lvl == x
+    end
+  end
+
+  local ifelse = function(is, yes, no)
+    return function(t, datas)
+      local ts = is(datas) and yes or no
+      for _,f in pairs(ts) do
+        f(t, datas)
+      end
+    end
+  end
+
+  local toifelse = function(t) return ifelse(table.unpack(t)) end
+  local toif = function(is, yes) return ifelse(is, yes, {}) end
+  local toifnot = function(is, no) return ifelse(is, {}, no) end
+
+  local lpeg = require'lpeg'
+  local C = lpeg.C
+  local P = lpeg.P
+  local R = lpeg.R
+  local S = lpeg.S
+  local V = lpeg.V
+  local Cc = lpeg.Cc
+  local Cf = lpeg.Cf
+  local Cg = lpeg.Cg
+  local Cs = lpeg.Cs
+  local Ct = lpeg.Ct
+  local specialchars = {t='\t',n='\n'}
+  local tospechar = function(x) return specialchars[x] or x end
+  local exclude = function(c)
+    return Cs((S'\\' * C(1)) / tospechar ) + (1-S(c))
+  end
+  local CUntil = function(c) return Ct((V'P' + (exclude('{'..c)^1 + S'{') / tos)^0) end
+  local UntilClose = CUntil('}')
+  local PrefixLvl = '*' * (exclude'}'^0 / toprefixlvl)
+  local ArboNum = '-' * Cf((R'16' + Cc(1)) / tonumber * Ct((S':' * exclude'}:'^0)^0), toarbonum)
+  local NameList = P'idepth' / toidepth
+    + (P'titleattr' + 'id' + 'title' + 'mdtitle' + 'i') / todata
+  local NamedCondList = R'16' / toislvl
+    + (P'id' + 'titleattr' + 'isfirst') / toisdata
+  local IfElse = '?!' * Ct(NamedCondList * ':' * CUntil(':') * ':' * UntilClose) / toifelse
+  local IfYes = '?' * Cf(NamedCondList * ':' * UntilClose, toif)
+  local IfNo = '!' * Cf(NamedCondList * ':' * UntilClose, toifnot)
+
+  local M = P{
+    "S";
+    S = CUntil(''),
+    P = '{' * (NameList + PrefixLvl + ArboNum + IfElse + IfYes + IfNo) * '}',
+  }
+
+  local formats = M:match(str)
+
+  return function(datas)
+    local r = {}
+    for _,f in ipairs(formats) do
+      f(r, datas)
+    end
+    return table.concat(r)
+  end
+end
 
 local mindepth = args.mindepth
 local maxdepth = args.maxdepth
@@ -165,6 +293,7 @@ for _,filename in ipairs(filenames) do
 end
 
 local url_api = args.url_api
+local print_ln = '\n'
 
 if url_api ~= '' then
   local curl = require'cURL'
@@ -183,20 +312,29 @@ if url_api ~= '' then
   :close()
 
   local H = {}
-  local pre='                     '
+  local datas = {
+    i=0,
+    H=H,
+    isfirst=true
+  }
   local toc = {}
-  for lvl, id, title in table.concat(html):gmatch('<h(.)>\n<a id="([^"]*).-</a>(.-)</h%1>\n') do
+  local format = Formater(args.format)
+  for lvl, id, title in table.concat(html):gmatch('<h(.)>\n<a id="user%-content%-([^"]*).-</a>(.-)</h%1>\n') do
     lvl = tonumber(lvl)
-    title = title:gsub('<a.->(.-)</a>', '%1'):gsub('\n', '')
+    datas.i = datas.i + 1
+    datas.id = id
+    datas.lvl = lvl
+    datas.title = title:gsub('<a.->(.-)</a>', '%1'):gsub('\n', '')
+    -- TODO datas.mdtitle
+    -- TODO datas.titleattr
     H[lvl] = (H[lvl] or 0) + 1
     H[lvl+1] = 0
-    toc[#toc+1] = string.format('%s%d. [%s](#%s)\n',
-      pre:sub(0, (lvl-1)*4),
-      H[lvl],
-      title,
-      id:sub(14)
-    )
+    toc[#toc+1] = format(datas)
+    datas.isfirst = false
   end
+
+  titles = toc
+  print_ln = nil
 
   if inplace then
     local toc_start = args.label_start_toc:gsub('[-?*+%[%]%%()]', '%%%1')
@@ -213,7 +351,6 @@ end
 
 if args.print then
   local is_print_filename = args.print_filename
-  print(is_print_filename, type(is_print_filename))
   if is_print_filename == nil and #filenames > 1 then
     is_print_filename = true
   end
@@ -222,7 +359,12 @@ if args.print then
     if is_print_filename then
       print((i == 1 and '' or '\n') .. filenames[i] .. '\n')
     end
-    print(table.concat(titles, '\n', istart, iend))
+    local out = table.concat(titles, print_ln, istart, iend)
+    if out:byte(-1) ~= 10 --[[\n]] then
+      print(out)
+    else
+      io.stdout:write(out)
+    end
     istart = iend+1
   end
 end
