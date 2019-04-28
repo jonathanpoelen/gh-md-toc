@@ -64,13 +64,13 @@ parser:option('-f --format', [[Table of contents item format:
     \t  tab
     \n  newline
     \x  x (where x is any character) represents the character x
-]], '{idepth}. {?!id:[{title}](#{id}):{title}}\\n'):argname'<format>'
+]], '{*    }{idepth}. {?!id:[{title}](#{id}):{title}}\\n'):argname'<format>'
 parser:option('-d --maxdepth', 'Do not extract title at levels greater than level', 6):convert(tonumber)
 parser:option('-D --mindepth', 'Do not extract title at levels less than level', 1):convert(tonumber)
-parser:option('-e --exclude', 'Exclude title', {}):argname'<title>':count('*'):action(append_key)
-parser:option('-r --rename', 'Exclude title', {}):argname'<title> <newtitle>':count('*'):args(2):action(append_key_value)
+parser:option('-e --exclude', 'Exclude a title', {}):argname'<title>':count('*'):action(append_key)
+parser:option('-r --rename', 'Rename a title', {}):argname'<title> <newtitle>':count('*'):args(2):action(append_key_value)
 parser:option('--label-ignore-title', 'Ignore the title under this line', '<!-- toc-ignore -->'):argname'<line>'
-parser:option('--label-rename-title', 'Rename the title under this line', '<!-- toc-title (.*) -->'):argname'<line>'
+parser:option('--label-rename-title', 'Rename the title under this line that match the lua pattern', '<!%-%- toc%-title (.+) %-%->'):argname'<line>'
 parser:option('--label-start-toc', 'Writes the table of contents between label-start-toc and label-stop-toc (only with --inplace)', '<!-- toc -->'):argname'<line>'
 parser:option('--label-stop-toc', 'Writes the table of contents between label-start-toc and label-stop-toc (only with --inplace)', '<!-- /toc -->'):argname'<line>'
 parser:option('--url-api', 'Github API URL', 'https://api.github.com/markdown/raw'):argname'<url>'
@@ -397,7 +397,7 @@ if url_api ~= '' then
   local Cgsub = function(patt, repl) return Cs((patt / repl + 1)^0) end
   local Una = Cgsub('<a' * (1-S'>')^0 * '>' * C((1-P'</a>')^0) * '</a>',
                     function(x) return x end)
-  local GhMdTitle = ((2 * C(1) * 22 * C((1-S'"')^0) * ((1-S'>')^1 * '>')^-4 * C((1-(P'</h' * R'16'))^1) * 6)
+  local GhMdTitle = ((2 * C(1) * 22 * C((1-S'"')^0) * ((1-S'>')^1 * '>')^-4 * C((1-(S'\n'^-1 * P'</h' * R'16'))^1) * S'\n'^-1 * 6)
   / function(lvl, id, title)
     lvl = tonumber(lvl)
     datas.i = datas.i + 1
