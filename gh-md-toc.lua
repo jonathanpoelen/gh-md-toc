@@ -2,12 +2,12 @@
 local argparse = require'argparse'
 
 local parser = argparse(arg[0], "Github Markdown TOC (table of contents)")
-function parser.flag2(_, f, ...)
+function parser.flag2(_, f, desc, default)
   local name = f:match'%-%-([-_%w]+)'
-  _:flag('--no'..name, 'Disable --'..name)
+  _:flag(f, desc)
+  return _:flag('--no'..name, 'Disable --'..name, default)
     :target(name:gsub('%-', '_'))
     :action'store_false'
-  return _:flag(f, ...)
 end
 
 function append_key(args, _, x)
@@ -21,7 +21,6 @@ function append_key_value(args, _, xs)
 end
 
 parser:argument('input', 'Input file'):args'*'
---TODO parser:option('--', 'Input file'):args('*')
 parser:flag2('-a --after-toc', 'Generates the table of contents with what is after value of --label-stop-toc')
 parser:option('-i --inplace', 'Edit files in place (makes backup if SUFFIX supplied)')
   :argname'<suffix>':args('?')
@@ -39,7 +38,6 @@ parser:option('-f --format', [[Table of contents item format:
     {id}  html id attribute
     {i}  title number
     {mdtitle}  original title
-    {titleattr}  title attribute
     {*text}  text is duplicated by lvl-1
     {-n:sep1:sep2:...}  concat depth from `n` level with sep1, then sep2, etc.
       with {-} for lvl = 4
@@ -54,13 +52,13 @@ parser:option('-f --format', [[Table of contents item format:
     {?cond:ok}  if
     {!cond:ko}  if not
 
-  cond: id, titleattr, isfirst or a the depth level of the title (1,2,etc)
+  cond: id, isfirst or a the depth level of the title (1,2,etc)
 
   specialchars:
     \t  tab
     \n  newline
     \x  x (where x is any character) represents the character x
-]], '{idepth}. {?!id:[{title}](#{id}{?titleattr: {titleattr}}):{title}}\\n'):argname'<format>'
+]], '{idepth}. {?!id:[{title}](#{id}):{title}}\\n'):argname'<format>'
 parser:option('-d --maxdepth', 'Do not extract title at levels greater than level', 6):convert(tonumber)
 parser:option('-D --mindepth', 'Do not extract title at levels less than level', 1):convert(tonumber)
 parser:option('-e --exclude', 'Exclude title', {}):argname'<title>':count('*'):action(append_key)
@@ -77,15 +75,6 @@ end)
 
 local args = parser:parse()
 
--- for k,v in pairs(args) do
---   print(k,v,type(v))
---   if type(v) == 'table' then
---     print(#v)
---     for k2,v2 in pairs(v) do
---       print('',k2,v2,type(v2))
---     end
---   end
--- end
 
 function Formater(str)
   local tos = function(x)
@@ -102,7 +91,13 @@ function Formater(str)
 
   local toidepth = function()
     return function(t, datas)
-      t[#t+1] = datas.H[datas.lvl]
+      t[#t+1] = datas.hn[datas.lvl]
+    end
+  end
+
+  local tomdtitle = function()
+    return function(t, datas)
+      t[#t+1] = datas.titles[datas.i]:sub(datas.lvl+2)
     end
   end
 
@@ -121,7 +116,7 @@ function Formater(str)
       local ts = {}
       local it = #t + 1
       for i=n,datas.lvl do
-        t[it] = datas.H[i]
+        t[it] = datas.hn[i]
         t[it+1] = seps[i-n+1] or sep
         it = it + 2
       end
@@ -162,7 +157,6 @@ function Formater(str)
   local V = lpeg.V
   local Cc = lpeg.Cc
   local Cf = lpeg.Cf
-  local Cg = lpeg.Cg
   local Cs = lpeg.Cs
   local Ct = lpeg.Ct
   local specialchars = {t='\t',n='\n'}
@@ -175,9 +169,10 @@ function Formater(str)
   local PrefixLvl = '*' * (exclude'}'^0 / toprefixlvl)
   local ArboNum = '-' * Cf((R'16' + Cc(1)) / tonumber * Ct((S':' * exclude'}:'^0)^0), toarbonum)
   local NameList = P'idepth' / toidepth
-    + (P'titleattr' + 'id' + 'title' + 'mdtitle' + 'i') / todata
+    + P'mdtitle' / tomdtitle
+    + (P'id' + 'title' + 'i') / todata
   local NamedCondList = R'16' / toislvl
-    + (P'id' + 'titleattr' + 'isfirst') / toisdata
+    + (P'id' + 'isfirst') / toisdata
   local IfElse = '?!' * Ct(NamedCondList * ':' * CUntil(':') * ':' * UntilClose) / toifelse
   local IfYes = '?' * Cf(NamedCondList * ':' * UntilClose, toif)
   local IfNo = '!' * Cf(NamedCondList * ':' * UntilClose, toifnot)
@@ -311,11 +306,12 @@ if url_api ~= '' then
   :perform()
   :close()
 
-  local H = {}
+  local hn = {}
   local datas = {
     i=0,
-    H=H,
-    isfirst=true
+    hn=hn,
+    titles=titles,
+    isfirst=true,
   }
   local toc = {}
   local format = Formater(args.format)
@@ -325,10 +321,8 @@ if url_api ~= '' then
     datas.id = id
     datas.lvl = lvl
     datas.title = title:gsub('<a.->(.-)</a>', '%1'):gsub('\n', '')
-    -- TODO datas.mdtitle
-    -- TODO datas.titleattr
-    H[lvl] = (H[lvl] or 0) + 1
-    H[lvl+1] = 0
+    hn[lvl] = (hn[lvl] or 0) + 1
+    hn[lvl+1] = 0
     toc[#toc+1] = format(datas)
     datas.isfirst = false
   end
