@@ -37,22 +37,28 @@ parser:option('-f --format', [[Table of contents item format:
     {title}  html title
     {id}  html id attribute
     {i}  title number
+    {i1} to {i6}  title number of first level, second level, etc
     {mdtitle}  original title
     {*text}  text is duplicated by lvl-1
+      with {*--} and lvl = 4
+        ------
     {-n:sep1:sep2:...}  concat depth from `n` level with sep1, then sep2, etc.
-      with {-} for lvl = 4
+      with {-} (equivalent to {-1:.}) and lvl = 4
         1.2.3.4.
-      with {-:\:: * :-} for lvl = 4
-        1:2 * 3-4-
-      with {-3} for lvl = 4
+      with {-:\:: * :-:} and lvl = 4
+        1:2 * 3-4
+      with {-3} and lvl = 4
         3.4.
+    {>n:pad:expr} align right
+    {<n:pad:expr} align left
+    {^n:pad:expr} align center
 
   condition:
     {?!cond:ok:ko}  if else
     {?cond:ok}  if
     {!cond:ko}  if not
 
-  cond: id, isfirst or a the depth level of the title (1,2,etc)
+  cond: id, isfirst, i2 to i6 and the depth level of the title (1 to 6)
 
   specialchars:
     \t  tab
@@ -76,123 +82,17 @@ end)
 local args = parser:parse()
 
 
-function Formater(str)
-  local tos = function(x)
-    return function(t)
-      t[#t+1] = x
-    end
-  end
+local lpeg = require'lpeg'
+local C = lpeg.C
+local P = lpeg.P
+local R = lpeg.R
+local S = lpeg.S
+local V = lpeg.V
+local Cc = lpeg.Cc
+local Cf = lpeg.Cf
+local Cs = lpeg.Cs
+local Ct = lpeg.Ct
 
-  local todata = function(x)
-    return function(t, datas)
-      t[#t+1] = datas[x] or ''
-    end
-  end
-
-  local toidepth = function()
-    return function(t, datas)
-      t[#t+1] = datas.hn[datas.lvl]
-    end
-  end
-
-  local tomdtitle = function()
-    return function(t, datas)
-      t[#t+1] = datas.titles[datas.i]:sub(datas.lvl+2)
-    end
-  end
-
-  local toprefixlvl = function(x)
-    local n = #x
-    x = x:rep(5)
-    return function(t, datas)
-      t[#t+1] = x:sub(1, (datas.lvl-1)*n)
-    end
-  end
-
-  local toarbonum = function(n, seps)
-    x = tonumber(x)
-    local sep = seps[#seps] or '.'
-    return function(t, datas)
-      local ts = {}
-      local it = #t + 1
-      for i=n,datas.lvl do
-        t[it] = datas.hn[i]
-        t[it+1] = seps[i-n+1] or sep
-        it = it + 2
-      end
-    end
-  end
-
-  local toisdata = function(x)
-    return function(datas)
-      return datas[x]
-    end
-  end
-
-  local toislvl = function(x)
-    x = tonumber(x)
-    return function(datas)
-      return datas.lvl == x
-    end
-  end
-
-  local ifelse = function(is, yes, no)
-    return function(t, datas)
-      local ts = is(datas) and yes or no
-      for _,f in pairs(ts) do
-        f(t, datas)
-      end
-    end
-  end
-
-  local toifelse = function(t) return ifelse(table.unpack(t)) end
-  local toif = function(is, yes) return ifelse(is, yes, {}) end
-  local toifnot = function(is, no) return ifelse(is, {}, no) end
-
-  local lpeg = require'lpeg'
-  local C = lpeg.C
-  local P = lpeg.P
-  local R = lpeg.R
-  local S = lpeg.S
-  local V = lpeg.V
-  local Cc = lpeg.Cc
-  local Cf = lpeg.Cf
-  local Cs = lpeg.Cs
-  local Ct = lpeg.Ct
-  local specialchars = {t='\t',n='\n'}
-  local tospechar = function(x) return specialchars[x] or x end
-  local exclude = function(c)
-    return Cs((S'\\' * C(1)) / tospechar ) + (1-S(c))
-  end
-  local CUntil = function(c) return Ct((V'P' + (exclude('{'..c)^1 + S'{') / tos)^0) end
-  local UntilClose = CUntil('}')
-  local PrefixLvl = '*' * (exclude'}'^0 / toprefixlvl)
-  local ArboNum = '-' * Cf((R'16' + Cc(1)) / tonumber * Ct((S':' * exclude'}:'^0)^0), toarbonum)
-  local NameList = P'idepth' / toidepth
-    + P'mdtitle' / tomdtitle
-    + (P'id' + 'title' + 'i') / todata
-  local NamedCondList = R'16' / toislvl
-    + (P'id' + 'isfirst') / toisdata
-  local IfElse = '?!' * Ct(NamedCondList * ':' * CUntil(':') * ':' * UntilClose) / toifelse
-  local IfYes = '?' * Cf(NamedCondList * ':' * UntilClose, toif)
-  local IfNo = '!' * Cf(NamedCondList * ':' * UntilClose, toifnot)
-
-  local M = P{
-    "S";
-    S = CUntil(''),
-    P = '{' * (NameList + PrefixLvl + ArboNum + IfElse + IfYes + IfNo) * '}',
-  }
-
-  local formats = M:match(str)
-
-  return function(datas)
-    local r = {}
-    for _,f in ipairs(formats) do
-      f(r, datas)
-    end
-    return table.concat(r)
-  end
-end
 
 local mindepth = args.mindepth
 local maxdepth = args.maxdepth
@@ -205,6 +105,19 @@ if #label_ignore_title == 0 then
   label_ignore_title = nil
 end
 label_rename_title = label_rename_title and '^'..label_rename_title..'$' or nil
+
+local MdPrefix = P' '^-3
+local MdSpace = S' \t'
+local MdSpace0 = MdSpace^0
+local MdSpace1 = MdSpace^1
+local MdNotSpace1 = (1-MdSpace)^1
+local MdSuffix = MdSpace0 * P(-1)
+local MdCode = MdPrefix * C(P'`'^3)
+local MdTitleText = MdSpace0 * C(MdNotSpace1 * (MdSpace1 * MdNotSpace1)^0) * MdSuffix
+local MdTitle = MdPrefix * C(S'#'^1 * ' ') * MdTitleText
+local MdAltH1 = MdPrefix * S'='^1 * MdSuffix
+local MdAltH2 = MdPrefix * S'-'^1 * MdSuffix
+local MdAltTitle = MdPrefix * MdTitleText
 
 function readtitles(filename, contents, titles, tocfound)
   local f, err = io.open(filename)
@@ -223,23 +136,23 @@ function readtitles(filename, contents, titles, tocfound)
 
     contents[#contents+1] = line
 
-    if incode and line:find(incode) then
+    if incode and incode:match(line) then
       incode = nil
     else
-      incode = line:match'^ ? ? ?(```+)'
+      incode = MdCode:match(line)
       if incode then
-        incode = '^ ? ? ?'..incode..'[ \t]*$'
+        incode = MdPrefix * P(incode) * MdSuffix
       elseif tocfound then
         if not incode then
-          local lvl, title = line:match'^ ? ? ?(#+ )[ \t]*(.*)[ \t]*$'
+          local lvl, title = MdTitle:match(line)
           local prev = previous
           if not title then
             prev = previous2
-            if line:find'^ ? ? ?=+[ \t]*$' then
-              title = previous:match'^ ? ? ?([^ ].*)[ \t]*$'
+            if MdAltH1:match(line) then
+              title = MdAltTitle:match(previous)
               lvl = '# '
-            elseif line:find'^ ? ? ?%-+[ \t]*$' then
-              title = previous:match'^ ? ? ?([^ ].*)[ \t]*$'
+            elseif MdAltH2:match(line) then
+              title = MdAltTitle:match(previous)
               lvl = '## '
             end
           end
@@ -306,6 +219,173 @@ if url_api ~= '' then
   :perform()
   :close()
 
+  function Formater(str)
+    local tos = function(x)
+      return function(t)
+        t[#t+1] = x
+      end
+    end
+
+    local todata = function(x)
+      return function(t, datas)
+        t[#t+1] = datas[x] or ''
+      end
+    end
+
+    local toidepth = function()
+      return function(t, datas)
+        t[#t+1] = datas.hn[datas.lvl]
+      end
+    end
+
+    local tohi = function(i)
+      i = tonumber(i)
+      return function(t, datas)
+        t[#t+1] = i <= datas.lvl and datas.hn[datas.lvl] or 0
+      end
+    end
+
+    local tomdtitle = function()
+      return function(t, datas)
+        t[#t+1] = datas.titles[datas.i]:sub(datas.lvl+2)
+      end
+    end
+
+    local toprefixlvl = function(x)
+      local n = #x
+      x = x:rep(5)
+      return function(t, datas)
+        t[#t+1] = x:sub(1, (datas.lvl-1)*n)
+      end
+    end
+
+    local toarbonum = function(n, seps)
+      x = tonumber(x)
+      local sep = seps[#seps] or '.'
+      return function(t, datas)
+        local ts = {}
+        local it = #t + 1
+        for i=n,datas.lvl do
+          t[it] = datas.hn[i]
+          t[it+1] = seps[i-n+1] or sep
+          it = it + 2
+        end
+      end
+    end
+
+    local topad = function(a, n, s, xs)
+      s = (#s == 0 and ' ' or s)
+      s = s:rep((n+#s) // #s)
+      local pad = (a == '<') and function(contents)
+        local len = #contents
+        return len < n and contents .. s:sub(1, n - len) or contents
+      end or (a == '>') and function(contents)
+        local len = #contents
+        return len < n and s:sub(1, n - len) .. contents or contents
+      end or function(contents)
+        local len = #contents
+        if len < n then
+          local dist = n - len
+          local dist2 = dist // 2
+          contents = s:sub(1, dist2)
+                  .. contents
+                  .. s:sub(1, dist - dist2)
+        end
+        return contents
+      end
+
+      return function(t, datas)
+        local ts = {}
+        for _,f in pairs(xs) do
+          f(ts, datas)
+        end
+        t[#t+1] = pad(table.concat(ts))
+      end
+    end
+
+    local toisdata = function(x)
+      return function(datas)
+        return datas[x]
+      end
+    end
+
+    local toislvl = function(x)
+      x = tonumber(x)
+      return function(datas)
+        return datas.lvl == x
+      end
+    end
+
+    local toishi = function(i)
+      i = tonumber(i)
+      return function(datas)
+        return i <= datas.lvl
+      end
+    end
+
+    local toifelse = function(is, yes, no)
+      return function(t, datas)
+        local ts = is(datas) and yes or no
+        for _,f in pairs(ts) do
+          f(t, datas)
+        end
+      end
+    end
+
+    local toif = function(is, yes) return toifelse(is, yes, {}) end
+    local toifnot = function(is, no) return toifelse(is, {}, no) end
+
+
+    local specialchars = {t='\t',n='\n'}
+    local tospechar = function(x) return specialchars[x] or x end
+    local exclude = function(c)
+      return Cs(S'\\' * C(1) / tospechar) + (1-S(c))
+    end
+    local exclude0 = function(c) return Cs(exclude(c)^0) end
+    local CPUntil = function(c)
+      return Ct((V'P' + Cs(exclude('{'..c)^1 + S'{') / tos)^0)
+    end
+    local UntilClose = CPUntil('}')
+    local PrefixLvl = '*' * (exclude0'}' / toprefixlvl)
+    local ArboNum = '-' * Cf((R'16' + Cc(1)) / tonumber * Ct((S':' * exclude0'}:')^0), toarbonum)
+    local Padding = (
+        C(S'<^>' )
+      * (R'09'^1 / tonumber) * S':'
+      * exclude0':' * S':'
+      * UntilClose
+    ) / topad
+    local NameList = P'idepth' / toidepth
+      + P'mdtitle' / tomdtitle
+      + 'i' * (R'16' / tohi)
+      + (P'id' + 'title' + 'i') / todata
+    local NamedCondList = R'16' / toislvl
+      + 'i' * (R'16' / toishi)
+      + (P'id' + 'isfirst' + 'i' * R'26') / toisdata
+    local IfElse = '?!' * (NamedCondList * ':' * CPUntil(':') * ':' * UntilClose / toifelse)
+    local IfYes = '?' * (NamedCondList * ':' * UntilClose / toif)
+    local IfNo = '!' * (NamedCondList * ':' * UntilClose / toifnot)
+
+    local M = P{
+      "S";
+      S = CPUntil(''),
+      P = '{' * (
+        NameList + PrefixLvl + ArboNum + Padding
+      + IfElse + IfYes + IfNo
+      ) * '}',
+    }
+
+    local formats = M:match(str)
+
+    return function(datas)
+      local r = {}
+      for _,f in ipairs(formats) do
+        f(r, datas)
+      end
+      return table.concat(r)
+    end
+  end
+
+  local format = Formater(args.format)
   local hn = {}
   local datas = {
     i=0,
@@ -314,30 +394,33 @@ if url_api ~= '' then
     isfirst=true,
   }
   local toc = {}
-  local format = Formater(args.format)
-  for lvl, id, title in table.concat(html):gmatch('<h(.)>\n<a id="user%-content%-([^"]*).-</a>(.-)</h%1>\n') do
+  local Cgsub = function(patt, repl) return Cs((patt / repl + 1)^0) end
+  local Una = Cgsub('<a' * (1-S'>')^0 * '>' * C((1-P'</a>')^0) * '</a>',
+                    function(x) return x end)
+  local GhMdTitle = ((2 * C(1) * 22 * C((1-S'"')^0) * ((1-S'>')^1 * '>')^-4 * C((1-(P'</h' * R'16'))^1) * 6)
+  / function(lvl, id, title)
     lvl = tonumber(lvl)
     datas.i = datas.i + 1
     datas.id = id
     datas.lvl = lvl
-    datas.title = title:gsub('<a.->(.-)</a>', '%1'):gsub('\n', '')
+    datas.title = Una:match(title)
     hn[lvl] = (hn[lvl] or 0) + 1
     hn[lvl+1] = 0
     toc[#toc+1] = format(datas)
     datas.isfirst = false
-  end
+  end)^1
+  GhMdTitle:match(table.concat(html))
 
   titles = toc
   print_ln = nil
 
   if inplace then
-    local toc_start = args.label_start_toc:gsub('[-?*+%[%]%%()]', '%%%1')
-    local toc_stop = args.label_stop_toc:gsub('[-?*+%[%]%%()]', '%%%1')
-    local contents, n = table.concat(contents_first_file, '\n'):gsub(
-      '('..toc_start..'\n).-('..toc_start..')',
-      '%1' .. table.concat(toc):gsub('%%', '%%%%') .. '%2'
-    )
-    if n ~= 0 then
+    local toc_start = args.label_start_toc
+    local toc_stop = args.label_stop_toc
+    local repl = toc_start .. table.concat(toc) .. toc_stop
+    local ReplaceToc = Cs(P(toc_start) * S'\n' * ((1-P(toc_stop))^0 / repl) * P(toc_stop))
+    local filecontents = table.concat(contents_first_file, '\n')
+    if ReplaceToc:match(filecontents) then
       io.open(filenames[1]..inplace, 'w'):write(contents .. '\n')
     end
   end
