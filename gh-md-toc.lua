@@ -291,40 +291,53 @@ if url_api ~= '' then
       end
     end
 
-    local utf8_len_decoder = (Cf((
-        R'\0\127' * Cc(1)
-      + R'\192\223' * 1 * Cc(2)
-      + R'\224\239' * 2 * Cc(3)
-      + 4 * Cc(4)
-    )^1, function(a,b) return a+b end))
+    local utf8_sub, utf8_len
+    if not utf8 then
+      local utf8_len_decoder = (Cf((
+          R'\0\127' * Cc(1)
+        + R'\194\223' * 1 * Cc(2)
+        + R'\224\239' * 2 * Cc(3)
+        + 4 * Cc(4)
+      )^1, function(a,b) return a+b end))
 
-    local utf8_decoder = Ct((
-        C(R'\0\127')
-      + C(R'\192\223' * 1)
-      + C(R'\224\239' * 2)
-      + C(4)
-    )^0)
+      local utf8_decoder = (
+          R'\0\127'
+        + R'\194\223' * 1
+        + R'\224\239' * 2
+        + 4
+      )
+
+      utf8_len = function(s) return utf8_len_decoder:match(s) or 0 end
+      utf8_sub = function(s, n)
+        return s:sub(1, (utf8_decoder^-n):match(s) - 1)
+      end
+    else
+      utf8_len = utf8.len
+      local utf8_offset = utf8.offset
+      utf8_sub = function(s, n)
+        return s:sub(1, utf8_offset(s, n+1)-1)
+      end
+    end
 
     local topad = function(a, n, s, xs)
       s = (#s == 0 and ' ' or s)
       local floor = math.floor -- rather that // for lua 5.1 compatibility
       s = s:rep(floor((n+#s) / #s))
-      local utf8 = utf8_decoder:match(s)
       local pad = (a == '<') and function(contents, len)
-        return len < n and contents .. table.concat(utf8, '', 1, n - len) or contents
+        return len < n and contents .. utf8_sub(s, n - len) or contents
       end or (a == '>') and function(contents, len)
-        return len < n and table.concat(utf8, '', 1, n - len) .. contents or contents
+        return len < n and utf8_sub(s, n - len) .. contents or contents
       end or (a == '^') and function(contents, len)
         if len < n then
           local dist = n - len
           local dist2 = floor(dist / 2)
-          contents = table.concat(utf8, '', 1, dist2)
+          contents = utf8_sub(s, dist2)
                   .. contents
-                  .. table.concat(utf8, '', 1, dist - dist2)
+                  .. utf8_sub(s, dist - dist2)
         end
         return contents
       end or function(contents, len)
-        return len < n and table.concat(utf8, '', 1, n - len) or ''
+        return len < n and utf8_sub(s, n - len) or ''
       end
 
       return function(t, datas)
@@ -333,7 +346,7 @@ if url_api ~= '' then
           f(ts, datas)
         end
         local contents = table.concat(ts)
-        t[#t+1] = pad(contents, utf8_len_decoder:match(contents))
+        t[#t+1] = pad(contents, utf8_len(contents))
       end
     end
 
