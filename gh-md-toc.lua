@@ -55,6 +55,7 @@ parser:option('-f --format', [[Table of contents item format:
     {>n:pad:expr} align right
     {<n:pad:expr} align left
     {^n:pad:expr} align center
+    {=n:pad:expr} add padding without displaying expr
 
   condition:
     {?!cond:ok:ko}  if else
@@ -300,7 +301,7 @@ if url_api ~= '' then
       end or (a == '>') and function(contents)
         local len = #contents
         return len < n and s:sub(1, n - len) .. contents or contents
-      end or function(contents)
+      end or (a == '^') and function(contents)
         local len = #contents
         if len < n then
           local dist = n - len
@@ -310,6 +311,9 @@ if url_api ~= '' then
                   .. s:sub(1, dist - dist2)
         end
         return contents
+      end or function(contents)
+        local len = #contents
+        return len < n and s:sub(1, n - len) or ''
       end
 
       return function(t, datas)
@@ -368,7 +372,7 @@ if url_api ~= '' then
     local MulMinLvl = '+' * exclude0'}' / tominprefixlvl
     local ArboNum = '-' * Cf((R'16' + Cc(1)) / tonumber * Ct((S':' * exclude0'}:')^0), toarbonum)
     local Padding = (
-        C(S'<^>' )
+        C(S'<^=>' )
       * (R'09'^1 / tonumber) * S':'
       * exclude0':' * S':'
       * UntilClose

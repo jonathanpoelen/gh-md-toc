@@ -33,7 +33,15 @@ luarocks path >> ~/.bashrc
 # My project
 
 <!-- toc -->
-Here will be generated the table of contents.
+  Gh-md-toc
+Installation
+Using LuaRocks
+    Example
+ My project
+First Title
+First Sub Title
+Second Sub Title
+Second Title
 <!-- /toc -->
 
 ## First Title
