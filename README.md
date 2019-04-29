@@ -2,14 +2,14 @@
 
 Generates a github markdown TOC (table of contents).
 
-## Dependency
+## Installation
 
 - [Lua](https://www.lua.org/) 5.1 or greater
 - [Lua-cURLv3](https://github.com/Lua-cURL/Lua-cURLv3)
 - [argparse](https://github.com/mpeterv/argparse)
 - [lpeg](http://www.inf.puc-rio.br/~roberto/lpeg/)
 
-### Installation
+### Using LuaRocks
 
 For `luajit`/`lua5.1`, used `--lua-version=5.1` with `luarocks`.
 
@@ -19,7 +19,7 @@ luarocks --local install argparse
 luarocks --local install lpeg
 ```
 
-If necessary, added the paths of luarocks in your `.bashrc`/`.zshrc`
+If necessary, added the paths of luarocks in your `.bashrc`/`.zshrc`.
 
 ```bash
 luarocks path >> ~/.bashrc
@@ -32,12 +32,9 @@ luarocks path >> ~/.bashrc
 ```md
 # My project
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-
 <!-- toc -->
 Here will be generated the table of contents.
 <!-- /toc -->
-
 
 ## First Title
 
