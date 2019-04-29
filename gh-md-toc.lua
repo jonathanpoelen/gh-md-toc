@@ -24,7 +24,7 @@ parser:argument('input', 'Input file'):args'*'
 parser:flag2('-a --after-toc', 'Generates the table of contents with what is after value of --label-stop-toc')
 parser:flag2('-g --one-toc', '--after-toc only for the first file')
 parser:flag2('-i --inplace', 'Edit files in place')
-parser:option('-s --suffix', 'backup rather editing file (involved --inplace)', '')
+parser:option('-s --suffix', 'backup rather editing file (involved --inplace)')
   :argname'<suffix>'
   :action(function(args, _, suffix)
     args.inplace = true
@@ -197,7 +197,7 @@ if #filenames == 0 then
 end
 
 local tocfound = not args.after_toc
-local inplace = args.inplace and args.suffix
+local inplace = args.inplace and (args.suffix or '')
 local one_toc = args.one_toc
 local titles = {}
 local titles_start_i = {}
