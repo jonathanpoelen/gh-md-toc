@@ -22,6 +22,7 @@ end
 
 parser:argument('input', 'Input file'):args'*'
 parser:flag2('-a --after-toc', 'Generates the table of contents with what is after value of --label-stop-toc')
+parser:flag2('-g --one-toc', '--after-toc only for the first file')
 parser:flag2('-i --inplace', 'Edit files in place')
 parser:option('-s --suffix', 'backup rather editing file (involved --inplace)', '')
   :argname'<suffix>'
@@ -31,7 +32,6 @@ parser:option('-s --suffix', 'backup rather editing file (involved --inplace)', 
   end)
 parser:flag2('-p --print', 'Display table of contents on stdout', true)
 parser:flag2('-P --print-filename', 'Display file name if --print')
-parser:flag2('-g --one-toc', 'With --inplace, insert TOC into the first input file')
 parser:option('-f --format', [[Table of contents item format:
   value:
     {idepth}  depth level of the title
@@ -43,6 +43,8 @@ parser:option('-f --format', [[Table of contents item format:
     {*text}  text is duplicated by lvl-1
       with {*--} and lvl = 4
         ------
+    {n*text}  text is duplicated by lvl-n
+    {+text}  text is duplicated by lvl-minlvl
     {-n:sep1:sep2:...}  concat depth from `n` level with sep1, then sep2, etc.
       with {-} (equivalent to {-1:.}) and lvl = 4
         1.2.3.4.
@@ -65,7 +67,7 @@ parser:option('-f --format', [[Table of contents item format:
     \t  tab
     \n  newline
     \x  x (where x is any character) represents the character x
-]], '{*    }{idepth}. {?!id:[{title}](#{id}):{title}}\\n'):argname'<format>'
+]], '{+    }{idepth}. {?!id:[{title}](#{id}):{title}}\\n'):argname'<format>'
 parser:option('-d --maxdepth', 'Do not extract title at levels greater than level', 6):convert(tonumber)
 parser:option('-D --mindepth', 'Do not extract title at levels less than level', 1):convert(tonumber)
 parser:option('-e --exclude', 'Exclude a title', {}):argname'<title>':count('*'):action(append_key)
@@ -120,7 +122,7 @@ local MdAltH1 = MdPrefix * S'='^1 * MdSuffix
 local MdAltH2 = MdPrefix * S'-'^1 * MdSuffix
 local MdAltTitle = MdPrefix * MdTitleText
 
-function readtitles(filename, contents, titles, tocfound)
+function readtitles(filename, contents, titles, tocfound, minlvl)
   local f, err = io.open(filename)
   if not f then
     error(err)
@@ -158,15 +160,20 @@ function readtitles(filename, contents, titles, tocfound)
             end
           end
 
-          if title
-          and #lvl < maxdepth+2
-          and #lvl > mindepth
-          and not excluded[title]
-          and prev ~= label_ignore_title
-          then
-            title = renamed[title] or title
-            title = (label_rename_title and prev:match(label_rename_title)) or title
-            titles[#titles+1] = lvl .. title
+          if title then
+            local lvllen = #lvl
+            if lvllen < maxdepth+2 and lvllen > mindepth
+            and not excluded[title] and prev ~= label_ignore_title
+            then
+              title = renamed[title] or title
+              title = (label_rename_title
+                       and prev:match(label_rename_title)
+                      ) or title
+              titles[#titles+1] = lvl .. title
+              if lvllen < minlvl then
+                minlvl = lvllen
+              end
+            end
           end
         end
       elseif line == toc_stop then
@@ -177,6 +184,8 @@ function readtitles(filename, contents, titles, tocfound)
     previous2 = previous
     previous = line
   end
+
+  return minlvl
 end
 
 local nullcontents = setmetatable({},{__len=function() return 0 end})
@@ -193,13 +202,15 @@ local titles = {}
 local titles_start_i = {}
 local contents_first_file = {}
 local contents = inplace and contents_first_file or nullcontents
+local minlvl = 7
 
 for _,filename in ipairs(filenames) do
-  readtitles(filename, contents, titles, tocfound)
+  minlvl = readtitles(filename, contents, titles, tocfound, minlvl)
   titles_start_i[#titles_start_i+1] = #titles
   contents = nullcontents
   tocfound = tocfound or one_toc
 end
+minlvl = minlvl - 1
 
 local url_api = args.url_api
 local print_ln = '\n'
@@ -252,13 +263,18 @@ if url_api ~= '' then
       end
     end
 
-    local toprefixlvl = function(x)
+    local toprefixlvl = function(ge, x)
       local n = #x
       x = x:rep(5)
       return function(t, datas)
-        t[#t+1] = x:sub(1, (datas.lvl-1)*n)
+        local lvl = datas.lvl
+        if lvl >= ge then
+          t[#t+1] = x:sub(1, (lvl-ge)*n)
+        end
       end
     end
+
+    local tominprefixlvl = function(x) return toprefixlvl(minlvl, x) end
 
     local toarbonum = function(n, seps)
       x = tonumber(x)
@@ -318,7 +334,7 @@ if url_api ~= '' then
       end
     end
 
-    local toishi = function(i)
+    local toislelvl = function(i)
       i = tonumber(i)
       return function(datas)
         return i <= datas.lvl
@@ -348,7 +364,8 @@ if url_api ~= '' then
       return Ct((V'P' + Cs(exclude('{'..c)^1 + S'{') / tos)^0)
     end
     local UntilClose = CPUntil('}')
-    local PrefixLvl = '*' * (exclude0'}' / toprefixlvl)
+    local MulLvl = (R'16' + Cc(1)) / tonumber * '*' * exclude0'}' / toprefixlvl
+    local MulMinLvl = '+' * exclude0'}' / tominprefixlvl
     local ArboNum = '-' * Cf((R'16' + Cc(1)) / tonumber * Ct((S':' * exclude0'}:')^0), toarbonum)
     local Padding = (
         C(S'<^>' )
@@ -361,8 +378,8 @@ if url_api ~= '' then
       + 'i' * (R'16' / tohi)
       + (P'id' + 'title' + 'i') / todata
     local NamedCondList = R'16' / toislvl
-      + 'i' * (R'16' / toishi)
-      + (P'id' + 'isfirst' + 'i' * R'26') / toisdata
+      + 'i' * (R'26' / toislelvl)
+      + (P'id' + 'isfirst') / toisdata
     local IfElse = '?!' * (NamedCondList * ':' * CPUntil(':') * ':' * UntilClose / toifelse)
     local IfYes = '?' * (NamedCondList * ':' * UntilClose / toif)
     local IfNo = '!' * (NamedCondList * ':' * UntilClose / toifnot)
@@ -371,7 +388,7 @@ if url_api ~= '' then
       "S";
       S = CPUntil(''),
       P = '{' * (
-        NameList + PrefixLvl + ArboNum + Padding
+        NameList + MulLvl + MulMinLvl + ArboNum + Padding
       + IfElse + IfYes + IfNo
       ) * '}',
     }
