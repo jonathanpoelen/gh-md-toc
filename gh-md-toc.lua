@@ -22,12 +22,13 @@ end
 
 parser:argument('input', 'Input file'):args'*'
 parser:flag2('-a --after-toc', 'Generates the table of contents with what is after value of --label-stop-toc')
-parser:option('-i --inplace', 'Edit files in place (makes backup if SUFFIX supplied)')
-  :argname'<suffix>':args('?')
+parser:flag2('-i --inplace', 'Edit files in place')
+parser:option('-s --suffix', 'backup rather editing file (involved --inplace)', '')
+  :argname'<suffix>'
   :action(function(args, _, suffix)
-    args[_] = #suffix ~= 0 and suffix[1] or ''
+    args.inplace = true
+    args.suffix = suffix
   end)
-parser:flag('--noinplace', 'Disable --in-place'):target'inplace':action('store_false')
 parser:flag2('-p --print', 'Display table of contents on stdout', true)
 parser:flag2('-P --print-filename', 'Display file name if --print')
 parser:flag2('-g --one-toc', 'With --inplace, insert TOC into the first input file')
@@ -168,7 +169,7 @@ function readtitles(filename, contents, titles, tocfound)
             titles[#titles+1] = lvl .. title
           end
         end
-      elseif line == tocstop then
+      elseif line == toc_stop then
         tocfound = true
       end
     end
@@ -186,7 +187,7 @@ if #filenames == 0 then
 end
 
 local tocfound = not args.after_toc
-local inplace = args.inplace
+local inplace = args.inplace and args.suffix
 local one_toc = args.one_toc
 local titles = {}
 local titles_start_i = {}
@@ -274,8 +275,9 @@ if url_api ~= '' then
     end
 
     local topad = function(a, n, s, xs)
+      local floor = math.floor -- rather that // for lua 5.1 compatibility
       s = (#s == 0 and ' ' or s)
-      s = s:rep((n+#s) // #s)
+      s = s:rep(floor((n+#s) / #s))
       local pad = (a == '<') and function(contents)
         local len = #contents
         return len < n and contents .. s:sub(1, n - len) or contents
@@ -286,7 +288,7 @@ if url_api ~= '' then
         local len = #contents
         if len < n then
           local dist = n - len
-          local dist2 = dist // 2
+          local dist2 = floor(dist / 2)
           contents = s:sub(1, dist2)
                   .. contents
                   .. s:sub(1, dist - dist2)
@@ -417,10 +419,15 @@ if url_api ~= '' then
   if inplace then
     local toc_start = args.label_start_toc
     local toc_stop = args.label_stop_toc
-    local repl = toc_start .. table.concat(toc) .. toc_stop
-    local ReplaceToc = Cs(P(toc_start) * S'\n' * ((1-P(toc_stop))^0 / repl) * P(toc_stop))
+    local ReplaceToc = Cs(
+      (1 - P(toc_start))^0
+    * P(toc_start) * S'\n'
+    * ((1-P(toc_stop))^0 / table.concat(toc))
+    * P(toc_stop)
+    * (1-S'')^0)
     local filecontents = table.concat(contents_first_file, '\n')
-    if ReplaceToc:match(filecontents) then
+    local contents = ReplaceToc:match(filecontents)
+    if contents then
       io.open(filenames[1]..inplace, 'w'):write(contents .. '\n')
     end
   end

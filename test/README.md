@@ -2,7 +2,7 @@
 
 ```
 # everything is optional
-PORT=12000 LUA=luajit ROCKS=--lua-version=5.1 DIFF=cmp ./test.sh
+LUA=luajit ROCKS=--lua-version=5.1 DIFF=cmp ./test.sh [num test...]
 ```
 
 # Github API

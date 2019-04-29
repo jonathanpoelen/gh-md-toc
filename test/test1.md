@@ -1,8 +1,4 @@
 # First h1
-
-<!-- start -->
-<!-- stop -->
-
 # Second h1
    ## co *co* **co** <sup>RICO</sup>
   ## # abc
@@ -16,7 +12,6 @@
 ### c
 <!-- toc-title D D -->
 #### d
-<!-- NOOooo -->
 ## e
 ### é
 g
