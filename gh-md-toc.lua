@@ -40,17 +40,17 @@ parser:option('-f --format', [[Table of contents item format:
     {i}  title number
     {i1} to {i6}  title number of first level, second level, etc
     {mdtitle}  original title
-    {*text}  text is duplicated by lvl-1
-      with {*--} and lvl = 4
+    {*text}  text is duplicated by depth-1
+      with {*--} and depth = 4
         ------
-    {n*text}  text is duplicated by lvl-n
-    {+text}  text is duplicated by lvl-minlvl
+    {n*text}  text is duplicated by depth-n
+    {+text}  text is duplicated by depth-min_depth_title
     {-n:sep1:sep2:...}  concat depth from `n` level with sep1, then sep2, etc.
-      with {-} (equivalent to {-1:.}) and lvl = 4
+      with {-} (equivalent to {-1:.}) and depth = 4
         1.2.3.4.
-      with {-:\:: * :-:} and lvl = 4
+      with {-:\:: * :-:} and depth = 4
         1:2 * 3-4
-      with {-3} and lvl = 4
+      with {-3} and depth = 4
         3.4.
     {>n:pad:expr} align right
     {<n:pad:expr} align left
@@ -122,7 +122,7 @@ local MdAltH1 = MdPrefix * S'='^1 * MdSuffix
 local MdAltH2 = MdPrefix * S'-'^1 * MdSuffix
 local MdAltTitle = MdPrefix * MdTitleText
 
-function readtitles(filename, contents, titles, tocfound, minlvl)
+function readtitles(filename, contents, titles, tocfound, min_depth_title)
   local f, err = io.open(filename)
   if not f then
     error(err)
@@ -170,8 +170,8 @@ function readtitles(filename, contents, titles, tocfound, minlvl)
                        and prev:match(label_rename_title)
                       ) or title
               titles[#titles+1] = lvl .. title
-              if lvllen < minlvl then
-                minlvl = lvllen
+              if lvllen < min_depth_title then
+                min_depth_title = lvllen
               end
             end
           end
@@ -185,7 +185,7 @@ function readtitles(filename, contents, titles, tocfound, minlvl)
     previous = line
   end
 
-  return minlvl
+  return min_depth_title
 end
 
 local nullcontents = setmetatable({},{__len=function() return 0 end})
@@ -202,15 +202,15 @@ local titles = {}
 local titles_start_i = {}
 local contents_first_file = {}
 local contents = inplace and contents_first_file or nullcontents
-local minlvl = 7
+local min_depth_title = 7
 
 for _,filename in ipairs(filenames) do
-  minlvl = readtitles(filename, contents, titles, tocfound, minlvl)
+  min_depth_title = readtitles(filename, contents, titles, tocfound, min_depth_title)
   titles_start_i[#titles_start_i+1] = #titles
   contents = nullcontents
   tocfound = tocfound or one_toc
 end
-minlvl = minlvl - 1
+min_depth_title = min_depth_title - 1
 
 local url_api = args.url_api
 local print_ln = '\n'
@@ -274,7 +274,7 @@ if url_api ~= '' then
       end
     end
 
-    local tominprefixlvl = function(x) return toprefixlvl(minlvl, x) end
+    local tominprefixlvl = function(x) return toprefixlvl(min_depth_title, x) end
 
     local toarbonum = function(n, seps)
       x = tonumber(x)
