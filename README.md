@@ -25,6 +25,18 @@ If necessary, added the paths of luarocks in your `.bashrc`/`.zshrc`.
 luarocks path >> ~/.bashrc
 ```
 
+#### Note for Ubuntu and Debian
+
+Install `libcurl4-gnutls-dev` and run
+
+```bash
+ln -s /usr/include/x86_64-linux-gnu/ /tmp/include
+luarocks --local install Lua-cURL CURL_DIR=/tmp/
+```
+
+Install `lua-lpeg` with `apt` if luarocks fails.
+
+
 ## Example
 
 `README.md`:
