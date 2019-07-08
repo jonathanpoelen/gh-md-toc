@@ -72,14 +72,14 @@ parser:option('-f --format', [[Table of contents item format:
 parser:option('-d --maxdepth', 'Do not extract title at levels greater than level', 6):convert(tonumber)
 parser:option('-D --mindepth', 'Do not extract title at levels less than level', 1):convert(tonumber)
 parser:option('-e --exclude', 'Exclude a title', {}):argname'<title>':count('*'):action(append_key)
-parser:option('-r --rename', 'Rename a title', {}):argname'<title> <newtitle>':count('*'):args(2):action(append_key_value)
+parser:option('-r --rename', 'Rename a title', {}):argname{'<title>','<newtitle>'}:count('*'):args(2):action(append_key_value)
 parser:option('--label-ignore-title', 'Ignore the title under this line', '<!-- toc-ignore -->'):argname'<line>'
 parser:option('--label-rename-title', 'Rename the title under this line that match the lua pattern', '<!%-%- toc%-title (.+) %-%->'):argname'<line>'
 parser:option('--label-start-toc', 'Writes the table of contents between label-start-toc and label-stop-toc (only with --inplace)', '<!-- toc -->'):argname'<line>'
 parser:option('--label-stop-toc', 'Writes the table of contents between label-start-toc and label-stop-toc (only with --inplace)', '<!-- /toc -->'):argname'<line>'
 parser:option('--url-api', 'Github API URL', 'https://api.github.com/markdown/raw'):argname'<url>'
-parser:option('--version', 'Output version information and exit'):action(function()
-  print('gh-md-toc 1.0.1') -- TODO
+parser:flag('--version', 'Output version information and exit'):action(function()
+  print('gh-md-toc 1.0.2') -- TODO
   os.exit(0)
 end)
 
