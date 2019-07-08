@@ -9,7 +9,7 @@ cd "$(dirname "$0")"
 TMPDIR="${TMPDIR:-/tmp/}"
 OUT="$TMPDIR/gh-md-toc-query.txt"
 DIFF="${DIFF:-diff}"
-INTS="${*:-1 2}"
+INTS="${*:-1 2 3}"
 
 test1() { ${LUA:-lua} ../gh-md-toc.lua --url-api=localhost:$PORT "$@" ; }
 test2() {
@@ -23,6 +23,7 @@ test2() {
     "$TMPDIR/$1"
   $DIFF "$1".inplace "$TMPDIR/$1" >&2 || err=$(($err+1))
 }
+test3() { test1 "$@" ; }
 
 err=0
 PORT=12010
@@ -36,5 +37,6 @@ done
 
 if [ $err -ne 0 ]; then
   echo KO = $err
+  kill %1 ||:
   exit $err
 fi

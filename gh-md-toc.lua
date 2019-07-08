@@ -35,7 +35,8 @@ parser:flag2('-P --print-filename', 'Display file name if --print')
 parser:option('-f --format', [[Table of contents item format:
   value:
     {idepth}  depth level of the title
-    {title}  html title
+    {title}  html title without <a> tag
+    {htmltitle}  original html title
     {id}  html id attribute
     {i}  title number
     {i1} to {i6}  title number of first level, second level, etc
@@ -94,6 +95,7 @@ local S = lpeg.S
 local V = lpeg.V
 local Cc = lpeg.Cc
 local Cf = lpeg.Cf
+local Cg = lpeg.Cg
 local Cs = lpeg.Cs
 local Ct = lpeg.Ct
 
@@ -397,7 +399,7 @@ if url_api ~= '' then
     local MulMinLvl = '+' * exclude0'}' / tominprefixlvl
     local ArboNum = '-' * Cf((R'16' + Cc(1)) / tonumber * Ct((S':' * exclude0'}:')^0), toarbonum)
     local Padding = (
-        C(S'<^=>' )
+        C(S'<^=>')
       * (R'09'^1 / tonumber) * S':'
       * exclude0':' * S':'
       * UntilClose
@@ -405,7 +407,7 @@ if url_api ~= '' then
     local NameList = P'idepth' / toidepth
       + P'mdtitle' / tomdtitle
       + 'i' * (R'16' / tohi)
-      + (P'id' + 'title' + 'i') / todata
+      + (P'id' + 'title' + 'i' + 'htmltitle') / todata
     local NamedCondList = R'16' / toislvl
       + 'i' * (R'26' / toislelvl)
       + (P'id' + 'isfirst') / toisdata
@@ -442,15 +444,14 @@ if url_api ~= '' then
     isfirst=true,
   }
   local toc = {}
-  local Cgsub = function(patt, repl) return Cs((patt / repl + 1)^0) end
-  local Una = Cgsub('<a' * (1-S'>')^0 * '>' * C((1-P'</a>')^0) * '</a>',
-                    function(x) return x end)
+  local Una = Cs((Cg('<a' * (1-S'>')^0 * '>' * C((1-P'</a>')^0) * '</a>') + 1)^0)
   local GhMdTitle = ((2 * C(1) * 22 * C((1-S'"')^0) * ((1-S'>')^1 * '>')^-4 * C((1-(S'\n'^-1 * P'</h' * R'16'))^1) * S'\n'^-1 * 6)
   / function(lvl, id, title)
     lvl = tonumber(lvl)
     datas.i = datas.i + 1
     datas.id = id
     datas.lvl = lvl
+    datas.htmltitle = title
     datas.title = Una:match(title)
     hn[lvl] = (hn[lvl] or 0) + 1
     hn[lvl+1] = 0
@@ -466,7 +467,7 @@ if url_api ~= '' then
     local toc_start = args.label_start_toc
     local toc_stop = args.label_stop_toc
     local ReplaceToc = Cs(
-      (1 - P(toc_start))^0
+      (1-P(toc_start))^0
     * P(toc_start) * S'\n'
     * ((1-P(toc_stop))^0 / table.concat(toc))
     * P(toc_stop)
