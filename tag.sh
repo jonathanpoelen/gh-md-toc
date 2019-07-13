@@ -9,13 +9,21 @@ if [ $# -lt 3 ] ; then
   exit 1
 fi
 
-new_version="$1.$2.$3"
-echo update version to $new_version
+projectname='gh-md-toc'
+oldfile=(*.rockspec)
+oldfile=${oldfile[0]}
+old_rock_vers=${oldfile:$((${#projectname}+1)):-9}
+new_rock_vers="$1.$2-$3"
+new_std_vers="$1.$2.$3"
+newfile="$projectname-$new_rock_vers.rockspec"
 
-sed -E "s/^  print\('gh-md-toc .*/  print('gh-md-toc $new_version')/" -i gh-md-toc.lua
+sed -i "s/^  print('gh-md-toc .*/  print('gh-md-toc $new_std_vers')/" gh-md-toc.lua
+sed -i "s/$old_rock_vers/$new_rock_vers/;s/${old_rock_vers/-/\\.}/$new_std_vers/" "$oldfile"
+sed -i "s/${oldfile//./\\.}/$newfile/" README.md
+mv "$oldfile" "$newfile"
 
-git add gh-md-toc.lua
-git commit -vm "update version to $new_version"
-git tag "v$new_version"
+git add "$oldfile" "$newfile" README.md gh-md-toc.lua
+git commit -vm "update version to $new_std_vers"
+git tag "v$new_std_vers"
 git push --tags
 git push

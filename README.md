@@ -5,7 +5,7 @@ Generates a github markdown TOC (table of contents).
 <!-- toc -->
 1. [Installation](#installation)
     1. [Using LuaRocks](#using-luarocks)
-        1. [Note for Ubuntu and Debian](#note-for-ubuntu-and-debian)
+        1. [Error with lua-curl or lpeg](#error-with-lua-curl-or-lpeg)
 2. [Example](#example)
 <!-- /toc -->
 
@@ -23,26 +23,34 @@ For `luajit`, add `--lua-version=5.1` with `luarocks`.
 /!\\ See next chapter if an error occurs with Lua-cURL or lpeg.
 
 ```bash
-luarocks --local install Lua-cURL
-luarocks --local install argparse
-luarocks --local install lpeg
+luarocks install --local https://raw.githubusercontent.com/jonathanpoelen/gh-md-toc/master/gh-md-toc-1.2-0.rockspec
+
+# Or in your local directory
+
+luarocks make --local gh-md-toc-1.2-0.rockspec
 ```
 
-Configure your environment with `eval $(luarock path)` before running `gh-md-toc.lua`.
+If this is not done, configure your environment with `eval $(luarock path)`. You can now run `gh-md-toc`.
 
-Or you can use `gh-md-toc.sh` to configure the environment and launch `gh-md-toc.lua`.
+Or you can use `gh-md-toc.sh` to configure the environment and launch `gh-md-toc`.
 
-#### Note for Ubuntu and Debian
+#### Error with lua-curl or lpeg
 
-Install `libcurl4-gnutls-dev` and run
+On Ubuntu and possibly other distributions, the installation of `Lua-cURL` and` LPeg` fail. If possible, install them from the package manager:
 
 ```bash
+apt install lua-lpeg
+```
+
+`Lua-cURL` is not available and requires more manipulation because it is incompatible with some versions of `libcurl*` packages. Still for Ubuntu, the following commands should alleviate the problem:
+
+```bash
+apt install libcurl4-gnutls-dev
 ln -s /usr/include/x86_64-linux-gnu/ /tmp/include
 luarocks --local install Lua-cURL CURL_DIR=/tmp/
 ```
 
-Install `lua-lpeg` with `apt` if luarocks fails.
-
+Now you can restart the installation commands from the previous chapter.
 
 ## Example
 
@@ -72,7 +80,7 @@ Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos
 Cras condimentum ultricies vehicula. Integer sed nisi vel metus lobortis scelerisque eu dapibus magna.
 ```
 
-Run `./gh-md-toc.lua.sh --inplace`. The `README.md` file now contains:
+Run `gh-md-toc --inplace`. The `README.md` file now contains:
 
 ```
 1. [First Title](#first-title)
@@ -84,7 +92,7 @@ Run `./gh-md-toc.lua.sh --inplace`. The `README.md` file now contains:
 By default, the titles above TOC are ignored. But you can take all the titles with the parameter `--all-title`.
 
 ```
-$ ./gh-md-toc.lua --inplace --all-title
+$ gh-md-toc --inplace --all-title
 1. [My project](#my-project)
     1. [First Title](#first-title)
         1. [First Sub Title](#first-sub-title)
@@ -92,4 +100,4 @@ $ ./gh-md-toc.lua --inplace --all-title
     2. [Second Title](#second-title)
 ```
 
-For for more option: `./gh-md-toc.sh -h`
+For for more option: `gh-md-toc -h`
