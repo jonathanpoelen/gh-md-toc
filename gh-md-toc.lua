@@ -20,7 +20,7 @@ function append_key_value(args, _, xs)
   t[xs[1]] = xs[2]
 end
 
-parser:argument('input', 'Input file'):args'*'
+parser:argument('input', 'Input file. README.md if none'):args'*'
 parser:flag2('-a --after-toc', 'Generates the table of contents with what is after value of --label-stop-toc')
 parser:flag2('-g --one-toc', '--after-toc only for the first file')
 parser:flag2('-i --inplace', 'Edit files in place')

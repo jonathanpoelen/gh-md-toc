@@ -2,6 +2,14 @@
 
 Generates a github markdown TOC (table of contents).
 
+<!-- toc -->
+1. [Gh-md-toc](#gh-md-toc)
+    1. [Installation](#installation)
+        1. [Using LuaRocks](#using-luarocks)
+            1. [Note for Ubuntu and Debian](#note-for-ubuntu-and-debian)
+    2. [Example](#example)
+<!-- /toc -->
+
 ## Installation
 
 - [Lua](https://www.lua.org/) 5.1 or greater
@@ -11,7 +19,9 @@ Generates a github markdown TOC (table of contents).
 
 ### Using LuaRocks
 
-For `luajit`/`lua5.1`, used `--lua-version=5.1` with `luarocks`.
+For `luajit`, add `--lua-version=5.1` with `luarocks`.
+
+/!\\ See next chapter if an error occurs with Lua-cURL or lpeg.
 
 ```bash
 luarocks --local install Lua-cURL
@@ -19,11 +29,9 @@ luarocks --local install argparse
 luarocks --local install lpeg
 ```
 
-If necessary, added the paths of luarocks in your `.bashrc`/`.zshrc`.
+Configure your environment with `eval $(luarock path)` before running `gh-md-toc.lua`.
 
-```bash
-luarocks path >> ~/.bashrc
-```
+Or you can use `gh-md-toc.sh` to configure the environment and launch `gh-md-toc.lua`.
 
 #### Note for Ubuntu and Debian
 
@@ -65,13 +73,7 @@ Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos
 Cras condimentum ultricies vehicula. Integer sed nisi vel metus lobortis scelerisque eu dapibus magna.
 ```
 
-Configure paths if they are not
-
-```bash
-eval `luarocks path`
-```
-
-Then run `./gh-md-toc.lua --inplace`. The `README.md` file now contains:
+Run `./gh-md-toc.lua.sh --inplace`. The `README.md` file now contains:
 
 ```
 1. [My project](#my-project)
@@ -91,4 +93,4 @@ $ ./gh-md-toc.lua --after-toc --inplace
 2. [Second Title](#second-title)
 ```
 
-For for more option: `./gh-md-toc.lua -h`
+For for more option: `./gh-md-toc.sh -h`
