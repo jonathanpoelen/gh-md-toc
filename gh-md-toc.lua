@@ -80,7 +80,7 @@ parser:option('--label-start-toc', 'Writes the table of contents between label-s
 parser:option('--label-stop-toc', 'Writes the table of contents between label-start-toc and label-stop-toc (only with --inplace)', '<!-- /toc -->'):argname'<line>'
 parser:option('--url-api', 'Github API URL', 'https://api.github.com/markdown/raw'):argname'<url>'
 parser:flag('--version', 'Output version information and exit'):action(function()
-  print('gh-md-toc 1.0.2') -- TODO
+  print('gh-md-toc 1.2.0')
   os.exit(0)
 end)
 
