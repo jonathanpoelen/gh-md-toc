@@ -142,8 +142,10 @@ function readtitles(filename, contents, titles, tocfound, min_depth_title)
 
     contents[#contents+1] = line
 
-    if incode and incode:match(line) then
-      incode = nil
+    if incode then
+      if incode:match(line) then
+        incode = nil
+      end
     else
       incode = MdCode:match(line)
       if incode then
