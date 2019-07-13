@@ -3,11 +3,10 @@
 Generates a github markdown TOC (table of contents).
 
 <!-- toc -->
-1. [Gh-md-toc](#gh-md-toc)
-    1. [Installation](#installation)
-        1. [Using LuaRocks](#using-luarocks)
-            1. [Note for Ubuntu and Debian](#note-for-ubuntu-and-debian)
-    2. [Example](#example)
+1. [Installation](#installation)
+    1. [Using LuaRocks](#using-luarocks)
+        1. [Note for Ubuntu and Debian](#note-for-ubuntu-and-debian)
+2. [Example](#example)
 <!-- /toc -->
 
 ## Installation
@@ -76,21 +75,21 @@ Cras condimentum ultricies vehicula. Integer sed nisi vel metus lobortis sceleri
 Run `./gh-md-toc.lua.sh --inplace`. The `README.md` file now contains:
 
 ```
+1. [First Title](#first-title)
+    1. [First Sub Title](#first-sub-title)
+    2. [Second Sub Title](#second-sub-title)
+2. [Second Title](#second-title)
+```
+
+By default, the titles above TOC are ignored. But you can take all the titles with the parameter `--all-title`.
+
+```
+$ ./gh-md-toc.lua --inplace --all-title
 1. [My project](#my-project)
     1. [First Title](#first-title)
         1. [First Sub Title](#first-sub-title)
         2. [Second Sub Title](#second-sub-title)
     2. [Second Title](#second-title)
-```
-
-You can create a TOC without the titles above.
-
-```
-$ ./gh-md-toc.lua --after-toc --inplace
-1. [First Title](#first-title)
-    1. [First Sub Title](#first-sub-title)
-    2. [Second Sub Title](#second-sub-title)
-2. [Second Title](#second-title)
 ```
 
 For for more option: `./gh-md-toc.sh -h`

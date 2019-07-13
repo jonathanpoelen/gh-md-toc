@@ -11,7 +11,7 @@ OUT="$TMPDIR/gh-md-toc-query.txt"
 DIFF="${DIFF:-diff}"
 INTS="${*:-1 2 3}"
 
-test1() { ${LUA:-lua} ../gh-md-toc.lua --url-api=localhost:$PORT "$@" ; }
+test1() { ${LUA:-lua} ../gh-md-toc.lua --url-api=localhost:$PORT -a "$@" ; }
 test2() {
   cp "$1" "$TMPDIR/$1"
   test1 \
@@ -19,7 +19,7 @@ test2() {
     -f '{i} {<30:_:{-:/:.:-:.} {title}} {idepth}{?i2:*{?i3:{!i4:*}}}\n' \
     --label-start-toc='<!-- start -->' \
     --label-stop-toc='<!-- stop -->' \
-    -ai \
+    --noall-title -i \
     "$TMPDIR/$1"
   $DIFF "$1".inplace "$TMPDIR/$1" >&2 || err=$(($err+1))
 }

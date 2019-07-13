@@ -21,8 +21,8 @@ function append_key_value(args, _, xs)
 end
 
 parser:argument('input', 'Input file. README.md if none'):args'*'
-parser:flag2('-a --after-toc', 'Generates the table of contents with what is after value of --label-stop-toc')
-parser:flag2('-g --one-toc', '--after-toc only for the first file')
+parser:flag2('-a --all-title', 'Generates the table of contents for all titles. By default, ignore those above value of --label-start-toc (<!-- toc --> by default)')
+parser:flag2('-g --one-toc', '--all-title except for the first file')
 parser:flag2('-i --inplace', 'Edit files in place')
 parser:option('-s --suffix', 'backup rather editing file (involved --inplace)')
   :argname'<suffix>'
@@ -200,7 +200,7 @@ if #filenames == 0 then
   filenames = {'README.md'}
 end
 
-local tocfound = not args.after_toc
+local tocfound = args.all_title
 local inplace = args.inplace and (args.suffix or '')
 local one_toc = args.one_toc
 local titles = {}
