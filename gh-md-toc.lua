@@ -79,6 +79,8 @@ parser:option('--label-rename-title', 'Rename the title under this line that mat
 parser:option('--label-start-toc', 'Writes the table of contents between label-start-toc and label-stop-toc (only with --inplace)', '<!-- toc -->'):argname'<line>'
 parser:option('--label-stop-toc', 'Writes the table of contents between label-start-toc and label-stop-toc (only with --inplace)', '<!-- /toc -->'):argname'<line>'
 parser:option('--url-api', 'Github API URL', 'https://api.github.com/markdown/raw'):argname'<url>'
+parser:option('--cmd-api', 'Command for Github API', 'curl https://api.github.com/markdown/raw -X POST -H \'Content-Type: text/plain\' -s -d'):argname'<cmd>'
+parser:flag2('-c --use-cmd-api', 'Use value of --cmd-api rather than --url-api')
 parser:flag('--version', 'Output version information and exit'):action(function()
   print('gh-md-toc 1.2.0')
   os.exit(0)
@@ -218,23 +220,30 @@ end
 min_depth_title = min_depth_title - 1
 
 local url_api = args.url_api
+local cmd_api = args.use_cmd_api and args.cmd_api ~= '' and args.cmd_api
 local print_ln = '\n'
 
-if url_api ~= '' then
-  local curl = require'cURL'
+if url_api ~= '' or cmd_api then
+  local md_titles = table.concat(titles, '\n')
+  local html = {} -- then string
 
-  local html = {}
-  curl.easy{
-    url=url_api,
-    writefunction=function(s) html[#html+1] = s end,
-    httpheader={
-      'User-Agent: gh-md-toc',
-      'Content-Type: text/plain'
-    },
-    postfields=table.concat(titles, '\n'),
-  }
-  :perform()
-  :close()
+  if cmd_api then
+    html = io.popen(cmd_api .. " '" .. md_titles:gsub("'", "\\'") .. "'"):read('*a')
+  else
+    require'cURL'.easy{
+      url=url_api,
+      writefunction=function(s) html[#html+1] = s end,
+      httpheader={
+        'User-Agent: gh-md-toc',
+        'Content-Type: text/plain'
+      },
+      postfields=md_titles,
+    }
+    :perform()
+    :close()
+
+    html = table.concat(html)
+  end
 
   function Formater(str)
     local tos = function(x)
@@ -460,8 +469,11 @@ if url_api ~= '' then
     toc[#toc+1] = format(datas)
     datas.isfirst = false
   end)^1
-  GhMdTitle:match(table.concat(html))
+  GhMdTitle:match(html)
 
+  if #titles ~= #toc then
+    error('invalid API result:\n' .. html)
+  end
   titles = toc
   print_ln = nil
 
