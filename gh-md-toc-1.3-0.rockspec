@@ -1,8 +1,8 @@
 package = "gh-md-toc"
-version = "1.2-0"
+version = "1.3-0"
 source = {
   url = "https://github.com/jonathanpoelen/gh-md-toc",
-  tag = "v1.2.0"
+  tag = "v1.3.0"
 }
 description = {
   summary = "Generates a github markdown TOC (table of contents)",
