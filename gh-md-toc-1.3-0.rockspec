@@ -1,7 +1,7 @@
 package = "gh-md-toc"
 version = "1.3-0"
 source = {
-  url = "https://github.com/jonathanpoelen/gh-md-toc",
+  url = "git://github.com/jonathanpoelen/gh-md-toc",
   tag = "v1.3.0"
 }
 description = {
