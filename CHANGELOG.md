@@ -1,7 +1,6 @@
 # Change Log
 
-## [v1.4.0](https://github.com/jonathanpoelen/gh-md-toc/tree/v
-vers) (2019-07-27)
+## [v1.4.0](https://github.com/jonathanpoelen/gh-md-toc/tree/v1.4.0) (2019-07-27)
 
 - new format: `{=0:pad:expr}` padding of the size of expr
 - enables `--all-title` if no TOC label is found
