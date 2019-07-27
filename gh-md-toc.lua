@@ -56,7 +56,7 @@ parser:option('-f --format', [[Table of contents item format:
     {>n:pad:expr} align right
     {<n:pad:expr} align left
     {^n:pad:expr} align center
-    {=n:pad:expr} add padding without displaying expr
+    {=n:pad:expr} add padding without displaying expr. If n = 0, the length of the expression is used.
 
   condition:
     {?!cond:ok:ko}  if else
@@ -127,14 +127,15 @@ local MdAltH1 = MdPrefix * S'='^1 * MdSuffix
 local MdAltH2 = MdPrefix * S'-'^1 * MdSuffix
 local MdAltTitle = MdPrefix * MdTitleText
 
-function readtitles(filename, contents, titles, tocfound, min_depth_title)
+function readtitles(filename, contents, titles, min_depth_title)
   local f, err = io.open(filename)
   if not f then
     error(err)
   end
 
   local incode = false
-  local previous, previous2 = '', ''
+  local previous, previous2, tocpos = '', ''
+  local min_depth_title_after_toc = min_depth_title
 
   while true do
     local line = f:read()
@@ -152,39 +153,40 @@ function readtitles(filename, contents, titles, tocfound, min_depth_title)
       incode = MdCode:match(line)
       if incode then
         incode = MdPrefix * P(incode) * MdSuffix
-      elseif tocfound then
-        if not incode then
-          local lvl, title = MdTitle:match(line)
-          local prev = previous
-          if not title then
-            prev = previous2
-            if MdAltH1:match(line) then
-              title = MdAltTitle:match(previous)
-              lvl = '# '
-            elseif MdAltH2:match(line) then
-              title = MdAltTitle:match(previous)
-              lvl = '## '
-            end
-          end
-
-          if title then
-            local lvllen = #lvl
-            if lvllen < maxdepth+2 and lvllen > mindepth
-            and not excluded[title] and prev ~= label_ignore_title
-            then
-              title = renamed[title] or title
-              title = (label_rename_title
-                       and prev:match(label_rename_title)
-                      ) or title
-              titles[#titles+1] = lvl .. title
-              if lvllen < min_depth_title then
-                min_depth_title = lvllen
-              end
-            end
+      else
+        local lvl, title = MdTitle:match(line)
+        local prev = previous
+        if not title then
+          prev = previous2
+          if MdAltH1:match(line) then
+            title = MdAltTitle:match(previous)
+            lvl = '# '
+          elseif MdAltH2:match(line) then
+            title = MdAltTitle:match(previous)
+            lvl = '## '
           end
         end
-      elseif line == toc_stop then
-        tocfound = true
+
+        if title then
+          local lvllen = #lvl
+          if lvllen < maxdepth+2 and lvllen > mindepth
+          and not excluded[title] and prev ~= label_ignore_title
+          then
+            title = renamed[title] or title
+            title = (label_rename_title
+                      and prev:match(label_rename_title)
+                    ) or title
+            titles[#titles+1] = lvl .. title
+            if lvllen < min_depth_title then
+              min_depth_title = lvllen
+            end
+            if tocpos and lvllen < min_depth_title_after_toc then
+              min_depth_title_after_toc = lvllen
+            end
+          end
+        elseif line == toc_stop and not tocpos then
+          tocpos = #titles
+        end
       end
     end
 
@@ -192,7 +194,7 @@ function readtitles(filename, contents, titles, tocfound, min_depth_title)
     previous = line
   end
 
-  return min_depth_title
+  return min_depth_title, min_depth_title_after_toc, tocpos
 end
 
 local nullcontents = setmetatable({},{__len=function() return 0 end})
@@ -202,7 +204,7 @@ if #filenames == 0 then
   filenames = {'README.md'}
 end
 
-local tocfound = args.all_title
+local all_title = args.all_title
 local inplace = args.inplace and (args.suffix or '')
 local one_toc = args.one_toc
 local titles = {}
@@ -210,12 +212,23 @@ local titles_start_i = {}
 local contents_first_file = {}
 local contents = inplace and contents_first_file or nullcontents
 local min_depth_title = 7
+local tocpos, min_depth_title_after_toc
 
 for _,filename in ipairs(filenames) do
-  min_depth_title = readtitles(filename, contents, titles, tocfound, min_depth_title)
+  min_depth_title, min_depth_title_after_toc, tocpos
+    = readtitles(filename, contents, titles, min_depth_title)
+  -- remove title above of toc label if exists
+  if not all_title and tocpos then
+    local starttoc = titles_start_i[#titles_start_i] or 0
+    table.move(titles, tocpos, #titles, starttoc)
+    for i=starttoc,tocpos do
+      table.remove(titles)
+    end
+    min_depth_title = min_depth_title_after_toc
+  end
   titles_start_i[#titles_start_i+1] = #titles
   contents = nullcontents
-  tocfound = tocfound or one_toc
+  all_title = all_title or one_toc
 end
 min_depth_title = min_depth_title - 1
 
@@ -350,6 +363,9 @@ if url_api ~= '' or cmd_api then
         end
         return contents
       end or function(contents, len)
+        if n == 0 then
+          return utf8_sub(s:rep(floor((len+#s) / #s)), len)
+        end
         return len < n and utf8_sub(s, n - len) or ''
       end
 
@@ -472,7 +488,7 @@ if url_api ~= '' or cmd_api then
   GhMdTitle:match(html)
 
   if #titles ~= #toc then
-    error('invalid API result:\n' .. html)
+    error('invalid API result (' .. #toc .. ' titles on ' .. #titles .. ' titles):\n' .. html)
   end
   titles = toc
   print_ln = nil
