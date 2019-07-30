@@ -1,5 +1,10 @@
 # Change Log
 
+## [v1.4.1](https://github.com/jonathanpoelen/gh-md-toc/tree/v1.4.1) (2019-07-30)
+
+- fix: last title is lost
+- fix: unknown table.move with lua52/luajit
+
 ## [v1.4.0](https://github.com/jonathanpoelen/gh-md-toc/tree/v1.4.0) (2019-07-27)
 
 - new format: `{=0:pad:expr}` padding of the size of expr

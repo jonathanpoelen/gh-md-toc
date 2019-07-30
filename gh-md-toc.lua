@@ -82,7 +82,7 @@ parser:option('--url-api', 'Github API URL', 'https://api.github.com/markdown/ra
 parser:option('--cmd-api', 'Command for Github API', 'curl https://api.github.com/markdown/raw -X POST -H \'Content-Type: text/plain\' -s -d'):argname'<cmd>'
 parser:flag2('-c --use-cmd-api', 'Use value of --cmd-api rather than --url-api')
 parser:flag('--version', 'Output version information and exit'):action(function()
-  print('gh-md-toc 1.4.0')
+  print('gh-md-toc 1.4.1')
   os.exit(0)
 end)
 
