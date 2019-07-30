@@ -9,30 +9,36 @@ cd "$(dirname "$0")"
 TMPDIR="${TMPDIR:-/tmp/}"
 OUT="$TMPDIR/gh-md-toc-query.txt"
 DIFF="${DIFF:-diff}"
-INTS="${*:-1 2 3}"
+INTS="${*:-1 2 3 4}"
 
-test1() { ${LUA:-lua} ../gh-md-toc.lua --url-api=localhost:$PORT -a "$@" ; }
+test1() {
+  local i=${1-1}
+  socat tcp-l:$PORT,reuseaddr 'system:cat response'$i'.txt!!open:'"$OUT",creat,trunc &
+  shift
+  ${LUA:-lua} ../gh-md-toc.lua --url-api=localhost:$PORT -a "${@:-test1.md}"
+  $DIFF input$i.txt "$OUT" || err=$(($err+1))
+}
 test2() {
-  cp "$1" "$TMPDIR/$1"
-  test1 \
+  local fname=test2.md
+  cp "$fname" "$TMPDIR/$fname"
+  test1 2 \
     --label-ignore-title '<!-- NOOooo -->' \
     -f '{i} {<30:_:{-:/:.:-:.} {title}} {idepth}{?i2:*{?i3:{!i4:*}}}\n' \
     --label-start-toc='<!-- start -->' \
     --label-stop-toc='<!-- stop -->' \
     --noall-title -i \
-    "$TMPDIR/$1"
-  $DIFF "$1".inplace "$TMPDIR/$1" >&2 || err=$(($err+1))
+    "$TMPDIR/$fname"
+  $DIFF "$fname".inplace "$TMPDIR/$fname" >&2 || err=$(($err+1))
 }
-test3() { test1 "$@" ; }
+test3() { test1 3 "test3.md" ; }
+test4() { ${LUA:-lua} ../gh-md-toc.lua -c --cmd-api='./cmd4.sh' input4.txt input4.txt ; }
 
 err=0
 PORT=12010
 
 for i in $INTS ; do
   echo $i
-  socat tcp-l:$PORT,reuseaddr 'system:cat response'$i'.txt!!open:'"$OUT",creat,trunc &
-  $DIFF output$i.txt <(test$i test$i.md) || err=$(($err+1))
-  $DIFF input$i.txt "$OUT" || err=$(($err+1))
+  $DIFF output$i.txt <(test$i) || err=$(($err+1))
 done
 
 if [ $err -ne 0 ]; then

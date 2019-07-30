@@ -9,6 +9,7 @@ Generates a github markdown TOC (table of contents).
         1. [Error with lua-curl or lpeg](#error-with-lua-curl-or-lpeg)
     2. [Manual installation](#manual-installation)
 3. [Example](#example)
+    1. [Sample format](#sample-format)
 <!-- /toc -->
 
 ## Features

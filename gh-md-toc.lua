@@ -197,6 +197,19 @@ function readtitles(filename, contents, titles, min_depth_title)
   return min_depth_title, min_depth_title_after_toc, tocpos
 end
 
+local table_move = table.move or function(a1, f, e, t, a2)
+  -- https://github.com/keplerproject/lua-compat-5.3
+  a2 = a2 or a1
+  if e >= f then
+    local m, n, d = 0, e-f, 1
+    if t > f then m, n, d = n, m, -1 end
+    for i = m, n, d do
+      a2[t+i] = a1[f+i]
+    end
+  end
+  return a2
+end
+
 local nullcontents = setmetatable({},{__len=function() return 0 end})
 
 local filenames = args.input
@@ -220,8 +233,8 @@ for _,filename in ipairs(filenames) do
   -- remove title above of toc label if exists
   if not all_title and tocpos then
     local starttoc = titles_start_i[#titles_start_i] or 0
-    table.move(titles, tocpos, #titles, starttoc)
-    for i=starttoc,tocpos do
+    table_move(titles, tocpos+1, #titles, starttoc+1)
+    for i=starttoc+1,tocpos do
       table.remove(titles)
     end
     min_depth_title = min_depth_title_after_toc
