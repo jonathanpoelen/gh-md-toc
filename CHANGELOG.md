@@ -1,5 +1,9 @@
 # Change Log
 
+## [v1.5.0](https://github.com/jonathanpoelen/gh-md-toc/tree/v1.5.0) (2020-01-15)
+
+- --all-title becomes --all-titles
+
 ## [v1.4.1](https://github.com/jonathanpoelen/gh-md-toc/tree/v1.4.1) (2019-07-30)
 
 - fix: last title is lost
