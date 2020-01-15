@@ -122,6 +122,8 @@ $ gh-md-toc --inplace --all-titles
     2. [Second Title](#second-title)
 ```
 
+Titles without formatting can be displayed with `gh-md-toc --url-api= --all-titles`.
+
 For for more option: `gh-md-toc -h`
 
 ### Sample format
