@@ -21,8 +21,8 @@ function append_key_value(args, _, xs)
 end
 
 parser:argument('input', 'Input file. README.md if none'):args'*'
-parser:flag2('-a --all-title', 'Generates the table of contents for all titles. By default, ignore those above value of --label-start-toc (<!-- toc --> by default)')
-parser:flag2('-g --one-toc', '--all-title except for the first file')
+parser:flag2('-a --all-titles', 'Generates the table of contents for all titles. By default, ignore those above value of --label-start-toc (<!-- toc --> by default)')
+parser:flag2('-g --one-toc', '--all-titles except for the first file')
 parser:flag2('-i --inplace', 'Edit files in place')
 parser:option('-s --suffix', 'backup rather editing file (involved --inplace)')
   :argname'<suffix>'
@@ -217,7 +217,7 @@ if #filenames == 0 then
   filenames = {'README.md'}
 end
 
-local all_title = args.all_title
+local all_titles = args.all_titles
 local inplace = args.inplace and (args.suffix or '')
 local one_toc = args.one_toc
 local titles = {}
@@ -231,7 +231,7 @@ for _,filename in ipairs(filenames) do
   min_depth_title, min_depth_title_after_toc, tocpos
     = readtitles(filename, contents, titles, min_depth_title)
   -- remove title above of toc label if exists
-  if not all_title and tocpos then
+  if not all_titles and tocpos then
     local starttoc = titles_start_i[#titles_start_i] or 0
     table_move(titles, tocpos+1, #titles, starttoc+1)
     for i=starttoc+1,tocpos do
@@ -241,7 +241,7 @@ for _,filename in ipairs(filenames) do
   end
   titles_start_i[#titles_start_i+1] = #titles
   contents = nullcontents
-  all_title = all_title or one_toc
+  all_titles = all_titles or one_toc
 end
 min_depth_title = min_depth_title - 1
 

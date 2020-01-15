@@ -26,7 +26,7 @@ test2() {
     -f '{i} {<30:_:{-:/:.:-:.} {title}} {idepth}{?i2:*{?i3:{!i4:*}}}\n' \
     --label-start-toc='<!-- start -->' \
     --label-stop-toc='<!-- stop -->' \
-    --noall-title -i \
+    --noall-titles -i \
     "$TMPDIR/$fname"
   $DIFF "$fname".inplace "$TMPDIR/$fname" >&2 || err=$(($err+1))
 }

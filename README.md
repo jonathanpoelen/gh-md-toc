@@ -111,10 +111,10 @@ Run `gh-md-toc --inplace`. The `README.md` file now contains:
 2. [Second Title](#second-title)
 ```
 
-By default, the titles above TOC are ignored. But you can take all the titles with the parameter `--all-title`.
+By default, the titles above TOC are ignored. But you can take all the titles with the parameter `--all-titles`.
 
 ```
-$ gh-md-toc --inplace --all-title
+$ gh-md-toc --inplace --all-titles
 1. [My project](#my-project)
     1. [First Title](#first-title)
         1. [First Sub Title](#first-sub-title)
