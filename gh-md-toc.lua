@@ -10,14 +10,17 @@ function parser.flag2(_, f, desc, default)
     :action'store_false'
 end
 
-function append_key(args, _, x)
-  local t = args[_]
-  t[x] = true
-end
-
-function append_key_value(args, _, xs)
-  local t = args[_]
-  t[xs[1]] = xs[2]
+function append_key(args, _, x)        args[_][x] = true end
+function append_key_value(args, _, xs) args[_][xs[1]] = xs[2] end
+function store_true(args, _, xs)       args[_] = true end
+function store_false(args, _, xs)      args[_] = false end
+function set_and_flag_other(target, v)
+  return function(args, _, x)
+    args[_] = x
+    if args[target] == nil then
+      args[target] = v
+    end
+  end
 end
 
 parser:argument('input', 'Input file. README.md if none'):args'*'
@@ -70,21 +73,32 @@ parser:option('-f --format', [[Table of contents item format:
     \n  newline
     \x  x (where x is any character) represents the character x
 ]], '{+    }{idepth}. {?!id:[{title}](#{id}):{title}}\\n'):argname'<format>'
-parser:option('-d --maxdepth', 'Do not extract title at levels greater than level', 6):convert(tonumber)
-parser:option('-D --mindepth', 'Do not extract title at levels less than level', 1):convert(tonumber)
-parser:option('-e --exclude', 'Exclude a title', {}):argname'<title>':count('*'):action(append_key)
-parser:option('-r --rename', 'Rename a title', {}):argname{'<title>','<newtitle>'}:count('*'):args(2):action(append_key_value)
-parser:option('--label-ignore-title', 'Ignore the title under this line', '<!-- toc-ignore -->'):argname'<line>'
-parser:option('--label-rename-title', 'Rename the title under this line that match the lua pattern', '<!%-%- toc%-title (.+) %-%->'):argname'<line>'
-parser:option('--label-start-toc', 'Writes the table of contents between label-start-toc and label-stop-toc (only with --inplace)', '<!-- toc -->'):argname'<line>'
-parser:option('--label-stop-toc', 'Writes the table of contents between label-start-toc and label-stop-toc (only with --inplace)', '<!-- /toc -->'):argname'<line>'
-parser:option('--url-api', 'Github API URL', 'https://api.github.com/markdown/raw'):argname'<url>'
-parser:option('--cmd-api', 'Command for Github API', 'curl https://api.github.com/markdown/raw -X POST -H \'Content-Type: text/plain\' -s -d'):argname'<cmd>'
-parser:flag2('-c --use-cmd-api', 'Use value of --cmd-api rather than --url-api')
-parser:flag('--version', 'Output version information and exit'):action(function()
-  print('gh-md-toc 1.5.0')
-  os.exit(0)
-end)
+parser:option('-d --maxdepth', 'Do not extract title at levels greater than level', 6)
+  :convert(tonumber)
+parser:option('-D --mindepth', 'Do not extract title at levels less than level', 1)
+  :convert(tonumber)
+parser:option('-e --exclude', 'Exclude a title', {})
+  :argname'<title>':count('*'):action(append_key)
+parser:option('-r --rename', 'Rename a title', {})
+  :argname{'<title>','<newtitle>'}:count('*'):args(2):action(append_key_value)
+parser:option('--label-ignore-title', 'Ignore the title under this line', '<!-- toc-ignore -->')
+  :argname'<line>'
+parser:option('--label-rename-title', 'Rename the title under this line that match the lua pattern', '<!%-%- toc%-title (.+) %-%->')
+  :argname'<line>'
+parser:option('--label-start-toc', 'Writes the table of contents between label-start-toc and label-stop-toc (only with --inplace)', '<!-- toc -->')
+  :argname'<line>'
+parser:option('--label-stop-toc', 'Writes the table of contents between label-start-toc and label-stop-toc (only with --inplace)', '<!-- /toc -->')
+  :argname'<line>'
+parser:option('--url-api', 'Github API URL', 'https://api.github.com/markdown/raw')
+  :argname'<url>':action(set_and_flag_other('use_cmd_api', false))
+parser:option('--cmd-api', 'Command for Github API', 'curl https://api.github.com/markdown/raw -X POST -H \'Content-Type: text/plain\' -s -d')
+  :argname'<cmd>':action(set_and_flag_other('use_cmd_api', true))
+parser:option('-c --use-cmd-api', 'Use value of --cmd-api rather than --url-api')
+  :args(0):action(store_true)
+parser:option('-u --use-url-api', 'Use value of --url-api rather than --cmd-api (enabled by default)')
+  :args(0):target'use_cmd_api':action(store_false)
+parser:flag('--version', 'Output version information and exit')
+  :action(function() print('gh-md-toc 1.5.0') os.exit(0) end)
 
 local args = parser:parse()
 

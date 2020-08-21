@@ -37,11 +37,12 @@ err=0
 PORT=12010
 
 for i in $INTS ; do
-  echo $i
+  echo -e "\e[31mtest$i\e[0m"
   $DIFF output$i.txt <(test$i) || err=$(($err+1))
 done
 
 if [ $err -ne 0 ]; then
+  echo -----------
   echo KO = $err
   kill %1 ||:
   exit $err

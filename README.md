@@ -26,6 +26,8 @@ Generates a github markdown TOC (table of contents).
 - [argparse](https://github.com/mpeterv/argparse)
 - [LPeg](http://www.inf.puc-rio.br/~roberto/lpeg/)
 
+`Lua-cURLv3` is required to use the github markdown API and extract title anchor. It is unused with `--use-cmd-api` or `--url-api=` (empty url).
+
 ### Using LuaRocks
 
 (Luarocks can be installed with the package manager on most distributions.)
@@ -48,7 +50,7 @@ Or you can use `gh-md-toc.sh` to configure the environment and launch `gh-md-toc
 
 #### Error with lua-curl or lpeg
 
-On Ubuntu and possibly other distributions, the installation of `Lua-cURL` and` LPeg` fail. If possible, install them from the package manager:
+On Ubuntu and possibly other distributions, the installation of `Lua-cURL` and `LPeg` fail. If possible, install them from the package manager:
 
 ```bash
 apt install lua-lpeg
@@ -72,7 +74,7 @@ Now you can restart the installation commands from the previous chapter.
 
 `argparse` is a pure Lua library, just configure `LUA_PATH` environment variable.
 
-`lua-curl` is more complicated, but the library can be ignored by adding `-c` or `--use-cmd-api` when launching `gh-md-toc` (you will need to have the `curl` program installed).
+`lua-curl` is more complicated, but the library can be ignored by adding `--use-cmd-api` when launching `gh-md-toc` (you will need to have the `curl` program installed or use `--cmd-api`).
 
 ## Example
 
