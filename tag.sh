@@ -4,7 +4,7 @@ set -e
 
 if [ $# -lt 3 ] ; then
   echo "$0 major minor revision" >&2
-  vers=$(sed -E 's/^  print\('\''gh-[^ ]+ ([^'\'']+).*/\1/;tq;d;:q;q' gh-md-toc.lua)
+  vers=$(sed -E 's/.*print\('\''gh-[^ ]+ ([^'\'']+).*/\1/;tq;d;:q;q' gh-md-toc.lua)
   echo "current version: $vers"
   exit 1
 fi
@@ -31,7 +31,7 @@ tail -n+2 CHANGELOG.md >> "$change"
 cat "$change"
 mv "$change" CHANGELOG.md
 
-sed -i "s/^  print('gh-md-toc .*/  print('gh-md-toc $new_std_vers')/" gh-md-toc.lua
+sed -i "s/print('gh-md-toc [^']\+/print('gh-md-toc $new_std_vers/" gh-md-toc.lua
 sed -i "s/$old_rock_vers/$new_rock_vers/;s/${old_rock_vers/-/\\.}/$new_std_vers/" "$oldfile"
 sed -i "s/${oldfile//./\\.}/$newfile/" README.md
 mv "$oldfile" "$newfile"
