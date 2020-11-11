@@ -268,7 +268,7 @@ if url_api ~= '' or cmd_api then
   local html = {} -- then string
 
   if cmd_api then
-    html = io.popen(cmd_api .. " '" .. md_titles:gsub("'", "\\'") .. "'"):read('*a')
+    html = io.popen(cmd_api .. " '" .. md_titles:gsub("'", "'\\''") .. "'"):read('*a')
   else
     require'cURL'.easy{
       url=url_api,
