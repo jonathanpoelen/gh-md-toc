@@ -1,3 +1,5 @@
+HTTP/1.1 200 OK
+
 <h1>
 <a id="user-content-install" class="anchor" href="#install" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Install</h1>
 <h1>

@@ -2,6 +2,9 @@
 
 set -e
 
+LUA=${LUA:-lua}
+$LUA -v
+
 eval `luarocks $ROCKS path`
 
 cd "$(dirname "$0")"
@@ -12,10 +15,11 @@ DIFF="${DIFF:-diff}"
 INTS="${*:-1 2 3 4}"
 
 test1() {
-  local i=${1-1}
+  local i=${1:-1}
   socat tcp-l:$PORT,reuseaddr 'system:cat response'$i'.txt!!open:'"$OUT",creat,trunc &
   shift
-  ${LUA:-lua} ../gh-md-toc.lua --url-api=localhost:$PORT -a "${@:-test1.md}"
+  sleep .4
+  $LUA ../gh-md-toc.lua --url-api=localhost:$PORT -a "${@:-test1.md}"
   $DIFF input$i.txt "$OUT" || err=$(($err+1))
 }
 test2() {
@@ -31,7 +35,7 @@ test2() {
   $DIFF "$fname".inplace "$TMPDIR/$fname" >&2 || err=$(($err+1))
 }
 test3() { test1 3 "test3.md" ; }
-test4() { ${LUA:-lua} ../gh-md-toc.lua -c --cmd-api='./cmd4.sh' input4.txt input4.txt ; }
+test4() { $LUA ../gh-md-toc.lua -c --cmd-api='./cmd4.sh' input4.txt input4.txt ; }
 
 err=0
 PORT=12010

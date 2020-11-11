@@ -1,3 +1,5 @@
+HTTP/1.1 200 OK
+
 <h1>
 <a id="user-content-first-h1" class="anchor" href="#first-h1" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>First h1</h1>
 <h1>
