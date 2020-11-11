@@ -97,6 +97,7 @@ parser:option('-c --use-cmd-api', 'Use value of --cmd-api rather than --url-api'
   :args(0):action(store_true)
 parser:option('-u --use-url-api', 'Use value of --url-api rather than --cmd-api (enabled by default)')
   :args(0):target'use_cmd_api':action(store_false)
+  :default(0) -- for uninit value
 parser:flag('--version', 'Output version information and exit')
   :action(function() print('gh-md-toc 1.6.0') os.exit(0) end)
 
@@ -260,12 +261,22 @@ end
 min_depth_title = min_depth_title - 1
 
 local url_api = args.url_api
-local cmd_api = args.use_cmd_api and args.cmd_api ~= '' and args.cmd_api
+local cmd_api = args.use_cmd_api == true and args.cmd_api ~= '' and args.cmd_api
 local print_ln = '\n'
 
 if url_api ~= '' or cmd_api then
   local md_titles = table.concat(titles, '\n')
   local html = {} -- then string
+
+  -- when cURL not found, fallback to --cmd-api
+  if not cmd_api and args.use_cmd_api == 0 then
+    xpcall(require, function(err)
+      cmd_api = args.cmd_api ~= '' and args.cmd_api
+      if cmd_api then
+        io.stderr:write('cURL module not found, fallback to --cmd-api. Use -c or --use-cmd-api to prevent this message or install lua-curl.\n')
+      end
+    end, 'cURL')
+  end
 
   if cmd_api then
     html = io.popen(cmd_api .. " '" .. md_titles:gsub("'", "'\\''") .. "'"):read('*a')

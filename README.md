@@ -22,7 +22,7 @@ Generates a github markdown TOC (table of contents).
 ## Installation
 
 - [Lua](https://www.lua.org/) 5.1 or greater
-- [Lua-cURLv3](https://github.com/Lua-cURL/Lua-cURLv3)
+- [Lua-cURLv3](https://github.com/Lua-cURL/Lua-cURLv3) (optional, use curl command when not found)
 - [argparse](https://github.com/mpeterv/argparse)
 - [LPeg](http://www.inf.puc-rio.br/~roberto/lpeg/)
 
@@ -64,7 +64,7 @@ ln -s /usr/include/x86_64-linux-gnu/ /tmp/include
 luarocks --local install Lua-cURL CURL_DIR=/tmp/
 ```
 
-As a last resort, you can remove the dependency on Lua-cURL and add `-c` to the `gh-md-toc` launch. If you do not have the `curl` program, you will also need to configure a command with `--cmd-api`.
+If `lua-cURL` is not installed, the `curl` command will be used. If you do not have the `curl` program, you will also need to configure a command with `--cmd-api`.
 
 Now you can restart the installation commands from the previous chapter.
 

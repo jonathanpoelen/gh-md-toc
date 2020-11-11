@@ -12,7 +12,8 @@ description = {
 dependencies = {
   "lua >= 5.1",
   "lpeg >= 1.0",
-  "lua-curl >= 0.3", -- optional with the -c parameter (see gm-md-toc --help)
+  -- "lua-curl >= 0.3", -- optional with the -c parameter (see gm-md-toc --help)
+                        -- or fallback to curl command line when the module is not found
   "argparse >= 0.6",
 }
 build = {
