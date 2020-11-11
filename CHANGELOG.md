@@ -1,5 +1,10 @@
 # Change Log
 
+## [v1.6.1](https://github.com/jonathanpoelen/gh-md-toc/tree/v1.6.1) (2020-11-11)
+
+- fix --use-cmd-api with a title wich contains a '
+- fallback to --cmd-api when lua-curl is not found
+
 ## [v1.6.0](https://github.com/jonathanpoelen/gh-md-toc/tree/v1.6.0) (2020-08-21)
 
 - Add `--use-url-api` that disable `--use-cmd-api`

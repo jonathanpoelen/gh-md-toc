@@ -99,7 +99,7 @@ parser:option('-u --use-url-api', 'Use value of --url-api rather than --cmd-api 
   :args(0):target'use_cmd_api':action(store_false)
   :default(0) -- for uninit value
 parser:flag('--version', 'Output version information and exit')
-  :action(function() print('gh-md-toc 1.6.0') os.exit(0) end)
+  :action(function() print('gh-md-toc 1.6.1') os.exit(0) end)
 
 local args = parser:parse()
 

@@ -37,11 +37,11 @@ For `luajit`, add `--lua-version=5.1` with `luarocks`.
 /!\\ See next chapter if an error occurs with Lua-cURL or LPeg.
 
 ```bash
-luarocks install --local https://raw.githubusercontent.com/jonathanpoelen/gh-md-toc/master/gh-md-toc-1.6-0.rockspec
+luarocks install --local https://raw.githubusercontent.com/jonathanpoelen/gh-md-toc/master/gh-md-toc-1.6-1.rockspec
 
 # Or in your local directory
 
-luarocks make --local gh-md-toc-1.6-0.rockspec
+luarocks make --local gh-md-toc-1.6-1.rockspec
 ```
 
 If this is not done, configure your environment with `eval $(luarock path)`. You can now run `gh-md-toc`.
