@@ -1,3 +1,3 @@
 #!/bin/sh
 eval `luarocks path`
-gh-md-toc.lua "$@"
+"$(dirname "$(realpath "$0")")"/gh-md-toc.lua "$@"
