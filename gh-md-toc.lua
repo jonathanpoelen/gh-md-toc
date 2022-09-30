@@ -1,7 +1,12 @@
 #!/usr/bin/env lua
 local argparse = require'argparse'
 
-local parser = argparse(arg[0], "Github Markdown TOC (table of contents)")
+local parser = argparse()
+  :name'gh-md-toc'
+  :description'Github Markdown TOC (table of contents)'
+  :epilog'Project url: https://github.com/jonathanpoelen/gh-md-toc'
+  :add_complete()
+
 function parser.flag2(_, f, desc, default)
   local name = f:match'%-%-([-_%w]+)'
   _:flag(f, desc)
@@ -12,8 +17,6 @@ end
 
 function append_key(args, _, x)        args[_][x] = true end
 function append_key_value(args, _, xs) args[_][xs[1]] = xs[2] end
-function store_true(args, _, xs)       args[_] = true end
-function store_false(args, _, xs)      args[_] = false end
 function set_and_flag_other(target, v)
   return function(args, _, x)
     args[_] = x
@@ -94,9 +97,9 @@ parser:option('--url-api', 'Github API URL', 'https://api.github.com/markdown/ra
 parser:option('--cmd-api', 'Command for Github API', 'curl https://api.github.com/markdown/raw -X POST -H \'Content-Type: text/plain\' -s -d')
   :argname'<cmd>':action(set_and_flag_other('use_cmd_api', true))
 parser:option('-c --use-cmd-api', 'Use value of --cmd-api rather than --url-api')
-  :args(0):action(store_true)
+  :args(0):action'store_true'
 parser:option('-u --use-url-api', 'Use value of --url-api rather than --cmd-api (enabled by default)')
-  :args(0):target'use_cmd_api':action(store_false)
+  :args(0):target'use_cmd_api':action'store_false'
   :default(0) -- for uninit value
 parser:flag('--version', 'Output version information and exit')
   :action(function() print('gh-md-toc 1.6.1') os.exit(0) end)
