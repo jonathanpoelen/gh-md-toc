@@ -10,7 +10,7 @@ local parser = argparse()
 function parser.flag2(_, f, desc, default)
   local name = f:match'%-%-([-_%w]+)'
   _:flag(f, desc)
-  return _:flag('--no'..name, 'Disable --'..name, default)
+  return _:flag('--no-'..name, 'Disable --'..name, default)
     :target(name:gsub('%-', '_'))
     :action'store_false'
 end
