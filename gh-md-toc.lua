@@ -270,21 +270,20 @@ local print_ln = '\n'
 if url_api ~= '' or cmd_api then
   local md_titles = table.concat(titles, '\n')
   local html = {} -- then string
+  local cURL, status
 
   -- when cURL not found, fallback to --cmd-api
   if not cmd_api and args.use_cmd_api == 0 then
-    xpcall(require, function(err)
+    status, cURL = pcall(require, 'cURL')
+    if not status then
       cmd_api = args.cmd_api ~= '' and args.cmd_api
-      if cmd_api then
-        io.stderr:write('cURL module not found, fallback to --cmd-api. Use -c or --use-cmd-api to prevent this message or install lua-curl.\n')
-      end
-    end, 'cURL')
+    end
   end
 
   if cmd_api then
     html = io.popen(cmd_api .. " '" .. md_titles:gsub("'", "'\\''") .. "'"):read('*a')
-  else
-    require'cURL'.easy{
+  elseif cURL then
+    cURL.easy{
       url=url_api,
       writefunction=function(s) html[#html+1] = s end,
       httpheader={
@@ -297,6 +296,9 @@ if url_api ~= '' or cmd_api then
     :close()
 
     html = table.concat(html)
+  else
+    io.stderr:write('--use-url-api is used, but requires cURL module which is not found.\nUse -c or --use-cmd-api to prevent this message or install lua-curl.\n')
+    os.exit(1)
   end
 
   function Formater(str)
