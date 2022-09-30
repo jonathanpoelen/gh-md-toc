@@ -514,8 +514,15 @@ if url_api ~= '' or cmd_api then
     isfirst=true,
   }
   local toc = {}
+  -- <h2><a id="user-content-features" class="anchor" aria-hidden="true" href="#features"><span aria-hidden="true" class="octicon octicon-link"></span></a>Features</h2>
   local Una = Cs((Cg('<a' * (1-S'>')^0 * '>' * C((1-P'</a>')^0) * '</a>') + 1)^0)
-  local GhMdTitle = ((2 * C(1) * 22 * C((1-S'"')^0) * ((1-S'>')^1 * '>')^-4 * C((1-(S'\n'^-1 * P'</h' * R'16'))^1) * S'\n'^-1 * 6)
+  local GhMdTitle = (
+    ( 2 * C(1) -- {level}
+    * 21 -- skip '><a id="user-content-'
+    * C((1-S'"')^0) -- {id}
+    * ((1-S'>')^1 * '>')^-4 -- after </a>
+    * C((1-(S'\n'^-1 * P'</h' * R'16'))^1) -- {title}
+    * S'\n'^-1 * 6) -- to end line
   / function(lvl, id, title)
     lvl = tonumber(lvl)
     datas.i = datas.i + 1
