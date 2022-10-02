@@ -1,5 +1,3 @@
 HTTP/1.1 200 OK
 
-<h1>
-<a id="user-content-a-link" class="anchor" href="#a-link" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>a <a href="url">link</a>
-</h1>
+<h1><a id="user-content-a-link" class="anchor" aria-hidden="true" href="#a-link"><span aria-hidden="true" class="octicon octicon-link"></span></a>a <a href="url">link</a></h1>

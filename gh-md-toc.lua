@@ -20,7 +20,7 @@ function append_key_value(args, _, xs) args[_][xs[1]] = xs[2] end
 function set_and_flag_other(target, v)
   return function(args, _, x)
     args[_] = x
-    if args[target] == nil then
+    if args[target] == 0 then
       args[target] = v
     end
   end
@@ -93,13 +93,13 @@ parser:option('--label-start-toc', 'Writes the table of contents between label-s
 parser:option('--label-stop-toc', 'Writes the table of contents between label-start-toc and label-stop-toc (only with --inplace)', '<!-- /toc -->')
   :argname'<line>'
 parser:option('--url-api', 'Github API URL', 'https://api.github.com/markdown/raw')
-  :argname'<url>':action(set_and_flag_other('use_cmd_api', false))
-parser:option('--cmd-api', 'Command for Github API', 'curl https://api.github.com/markdown/raw -X POST -H \'Content-Type: text/plain\' -s -d')
-  :argname'<cmd>':action(set_and_flag_other('use_cmd_api', true))
-parser:option('-c --use-cmd-api', 'Use value of --cmd-api rather than --url-api')
+  :argname'<url>'
+parser:option('--cmd-api', 'Command for Github API. {url} is automatically replaced with single quoted value of --url-api')
+  :argname'<cmd>':action(set_and_flag_other('use_cmd', true))
+parser:option('-c --use-cmd', 'Use value of --cmd-api rather than cURL implementation')
   :args(0):action'store_true'
-parser:option('-u --use-url-api', 'Use value of --url-api rather than --cmd-api (enabled by default)')
-  :args(0):target'use_cmd_api':action'store_false'
+parser:option('-u --use-lua-curl', 'Use Lua-cURL implementation')
+  :args(0):target'use_cmd':action'store_false'
   :default(0) -- for uninit value
 parser:flag('--version', 'Output version information and exit')
   :action(function() print('gh-md-toc 1.6.1') os.exit(0) end)
@@ -264,25 +264,28 @@ end
 min_depth_title = min_depth_title - 1
 
 local url_api = args.url_api
-local cmd_api = args.use_cmd_api == true and args.cmd_api ~= '' and args.cmd_api
+local cmd_api = args.use_cmd ~= false and args.cmd_api ~= '' and args.cmd_api
 local print_ln = '\n'
 
-if url_api ~= '' or cmd_api then
+if url_api ~= '' then
+  if cmd_api == nil then
+    cmd_api = "curl '" .. url_api:gsub("'", "'\\''") .. "' -X POST -H 'Content-Type: text/plain' -s -d"
+  elseif cmd_api then
+    cmd_api = cmd_api:gsub('{url}', "'" .. url_api:gsub("'", "'\\''") .. "'")
+  end
+end
+
+if cmd_api or url_api ~= '' then
   local md_titles = table.concat(titles, '\n')
   local html = {} -- then string
   local cURL, status
 
   -- when cURL not found, fallback to --cmd-api
-  if not cmd_api and args.use_cmd_api == 0 then
-    status, cURL = pcall(require, 'cURL')
-    if not status then
-      cmd_api = args.cmd_api ~= '' and args.cmd_api
-    end
+  if cmd_api and args.use_cmd ~= true then
+    status, cURL = xpcall(require, function() end, 'cURL')
   end
 
-  if cmd_api then
-    html = io.popen(cmd_api .. " '" .. md_titles:gsub("'", "'\\''") .. "'"):read('*a')
-  elseif cURL then
+  if cURL then
     cURL.easy{
       url=url_api,
       writefunction=function(s) html[#html+1] = s end,
@@ -296,6 +299,8 @@ if url_api ~= '' or cmd_api then
     :close()
 
     html = table.concat(html)
+  elseif cmd_api then
+    html = io.popen(cmd_api .. " '" .. md_titles:gsub("'", "'\\''") .. "'"):read('*a')
   else
     io.stderr:write('--use-url-api is used, but requires cURL module which is not found.\nUse -c or --use-cmd-api to prevent this message or install lua-curl.\n')
     os.exit(1)
@@ -517,16 +522,16 @@ if url_api ~= '' or cmd_api then
   -- <h2><a id="user-content-features" class="anchor" aria-hidden="true" href="#features"><span aria-hidden="true" class="octicon octicon-link"></span></a>Features</h2>
   local Una = Cs((Cg('<a' * (1-S'>')^0 * '>' * C((1-P'</a>')^0) * '</a>') + 1)^0)
   local GhMdTitle = (
-    ( 2 * C(1) -- {level}
-    * 21 -- skip '><a id="user-content-'
-    * C((1-S'"')^0) -- {id}
-    * ((1-S'>')^1 * '>')^-4 -- after </a>
-    * C((1-(S'\n'^-1 * P'</h' * R'16'))^1) -- {title}
-    * S'\n'^-1 * 6) -- to end line
-  / function(lvl, id, title)
+    ( 2 * C(1) -- {lvl}
+    * 21 -- skip ><a id="user-content-
+    * C((1-S'"')^0) -- {href}
+    * ((1-S'>')^1 * 1)^-4 -- after </a>
+    * C((1-P'</h' * R'16')^1) -- {title}
+    * 5 * (1-S'\n')^0 * S'\n'^0) -- to end line
+  / function(lvl, href, title)
     lvl = tonumber(lvl)
     datas.i = datas.i + 1
-    datas.id = id
+    datas.id = href
     datas.lvl = lvl
     datas.htmltitle = title
     datas.title = Una:match(title)

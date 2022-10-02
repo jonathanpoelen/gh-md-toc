@@ -6,7 +6,7 @@ Generates a github markdown TOC (table of contents).
 1. [Features](#features)
 2. [Installation](#installation)
     1. [Using LuaRocks](#using-luarocks)
-        1. [Error with lua-curl or lpeg](#error-with-lua-curl-or-lpeg)
+        1. [Error with LPeg](#error-with-lpeg)
     2. [Manual installation](#manual-installation)
 3. [Example](#example)
     1. [Sample format](#sample-format)
@@ -22,11 +22,11 @@ Generates a github markdown TOC (table of contents).
 ## Installation
 
 - [Lua](https://www.lua.org/) 5.1 or greater
-- [Lua-cURLv3](https://github.com/Lua-cURL/Lua-cURLv3) (optional, use curl command when not found)
+- [Lua-cURLv3](https://github.com/Lua-cURL/Lua-cURLv3) (optional, use `curl` command when not found)
 - [argparse](https://github.com/mpeterv/argparse)
 - [LPeg](http://www.inf.puc-rio.br/~roberto/lpeg/)
 
-`Lua-cURLv3` is required to use the github markdown API and extract title anchor. It is unused with `--use-cmd-api` or `--url-api=` (empty url).
+`Lua-cURLv3` and `curl` are required to use the github markdown API and extract title anchor. They are unused with `--url-api=` (empty url).
 
 ### Using LuaRocks
 
@@ -34,7 +34,7 @@ Generates a github markdown TOC (table of contents).
 
 For `luajit`, add `--lua-version=5.1` with `luarocks`.
 
-/!\\ See next chapter if an error occurs with Lua-cURL or LPeg.
+/!\\ See next chapter if an error occurs with LPeg.
 
 ```bash
 luarocks install --local https://raw.githubusercontent.com/jonathanpoelen/gh-md-toc/master/gh-md-toc-1.6-1.rockspec
@@ -48,25 +48,13 @@ If this is not done, configure your environment with `eval $(luarock path)`. You
 
 Or you can use `gh-md-toc.sh` to configure the environment and launch `gh-md-toc`.
 
-#### Error with lua-curl or lpeg
+#### Error with LPeg
 
-On Ubuntu and possibly other distributions, the installation of `Lua-cURL` and `LPeg` fail. If possible, install them from the package manager:
+On Ubuntu and possibly other distributions, the installation of `LPeg` fail. If possible, install them from the package manager:
 
 ```bash
 apt install lua-lpeg
 ```
-
-`Lua-cURL` is not available and requires more manipulation because it is incompatible with some versions of `libcurl*` packages. Still for Ubuntu, the following commands should alleviate the problem:
-
-```bash
-apt install libcurl4-gnutls-dev
-ln -s /usr/include/x86_64-linux-gnu/ /tmp/include
-luarocks --local install Lua-cURL CURL_DIR=/tmp/
-```
-
-If `lua-cURL` is not installed, the `curl` command will be used. If you do not have the `curl` program, you will also need to configure a command with `--cmd-api`.
-
-Now you can restart the installation commands from the previous chapter.
 
 ### Manual installation
 
@@ -74,7 +62,15 @@ Now you can restart the installation commands from the previous chapter.
 
 `argparse` is a pure Lua library, just configure `LUA_PATH` environment variable.
 
-`lua-curl` is more complicated, but the library can be ignored by adding `--use-cmd-api` when launching `gh-md-toc` (you will need to have the `curl` program installed or use `--cmd-api`).
+`lua-curl` is optional, but you will need to have the `curl` program installed or to use `--cmd-api`.
+
+On Ubuntu, `Lua-cURL` may require manipulation because it is incompatible with some versions of `libcurl*` packages. The following commands should alleviate the problem:
+
+```sh
+apt install libcurl4-gnutls-dev
+ln -s /usr/include/x86_64-linux-gnu/ /tmp/include
+luarocks --local install Lua-cURL CURL_DIR=/tmp/
+```
 
 ## Example
 
