@@ -123,6 +123,7 @@ parser:option('-c --use-cmd', 'Use value of --cmd-api rather than cURL implement
 parser:option('-u --use-lua-curl', 'Use Lua-cURL implementation')
   :args(0):target'use_cmd':action'store_false'
   :default(0) -- for uninit value
+parser:flag2('--print-api-result', 'Display the html result of the api and exit.')
 parser:flag('--version', 'Output version information and exit')
   :action(function() print('gh-md-toc 1.6.1') os.exit(0) end)
 
@@ -326,6 +327,11 @@ if cmd_api or url_api ~= '' then
   else
     io.stderr:write('--use-url-api is used, but requires cURL module which is not found.\nUse -c or --use-cmd-api to prevent this message or install lua-curl.\n')
     os.exit(1)
+  end
+
+  if args.print_api_result then
+    io.stdout:write(html)
+    os.exit(0)
   end
 
   function Formater(str)
