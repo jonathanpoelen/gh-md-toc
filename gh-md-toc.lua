@@ -1,5 +1,27 @@
 #!/usr/bin/env lua
-local argparse = require'argparse'
+function explicative_require(mod_name, package_name)
+  local status, mod_or_error = pcall(require, mod_name)
+  if not status then
+    io.stderr:write(mod_or_error .. [[
+
+
+This module can be installed with
+
+    luarocks install --local ]] .. (package_name or mod_name) .. [[
+
+
+(For a specific version of lua, please add `--lua-version=5.1`)
+
+Then configured with
+
+    eval "$(luarocks path)"
+]])
+    os.exit(1)
+  end
+  return mod_or_error
+end
+
+local argparse = explicative_require'argparse'
 
 local parser = argparse()
   :name'gh-md-toc'
@@ -107,7 +129,7 @@ parser:flag('--version', 'Output version information and exit')
 local args = parser:parse()
 
 
-local lpeg = require'lpeg'
+local lpeg = explicative_require'lpeg'
 local C = lpeg.C
 local P = lpeg.P
 local R = lpeg.R
