@@ -116,7 +116,7 @@ parser:option('--label-stop-toc', 'Writes the table of contents between label-st
   :argname'<line>'
 parser:option('--url-api', 'Github API URL', 'https://api.github.com/markdown/raw')
   :argname'<url>'
-parser:option('--cmd-api', 'Command for Github API. {url} is automatically replaced with single quoted value of --url-api')
+parser:option('--cmd-api', 'Command for Github API. {url} is automatically replaced with single quoted value of --url-api and {md} with the titles extracted')
   :argname'<cmd>':action(set_and_flag_other('use_cmd', true))
 parser:option('-c --use-cmd', 'Use value of --cmd-api rather than cURL implementation')
   :args(0):action'store_true'
@@ -292,7 +292,7 @@ local print_ln = '\n'
 
 if url_api ~= '' then
   if cmd_api == nil then
-    cmd_api = "curl '" .. url_api:gsub("'", "'\\''") .. "' -X POST -H 'Content-Type: text/plain' -s -d"
+    cmd_api = "curl '" .. url_api:gsub("'", "'\\''") .. "' -X POST -H 'Content-Type: text/plain' -s -d {md}"
   elseif cmd_api then
     cmd_api = cmd_api:gsub('{url}', "'" .. url_api:gsub("'", "'\\''") .. "'")
   end
@@ -323,7 +323,8 @@ if cmd_api or url_api ~= '' then
 
     html = table.concat(html)
   elseif cmd_api then
-    html = io.popen(cmd_api .. " '" .. md_titles:gsub("'", "'\\''") .. "'"):read('*a')
+    cmd_api = cmd_api:gsub('{md}', "'" .. md_titles:gsub("'", "'\\''") .. "'")
+    html = io.popen(cmd_api):read('*a')
   else
     io.stderr:write('--use-url-api is used, but requires cURL module which is not found.\nUse -c or --use-cmd-api to prevent this message or install lua-curl.\n')
     os.exit(1)
