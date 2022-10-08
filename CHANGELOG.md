@@ -1,5 +1,15 @@
 # Change Log
 
+## [v2.0.0](https://github.com/jonathanpoelen/gh-md-toc/tree/v2.0.0) (2022-10-08)
+
+- fix parsing with latest github api
+- add `--completion`
+- add `--print-api-result`
+- add `{md}` placeholder with `--cmd-api`
+- replace `--use-cmd-api` with `--use-cmd`
+- replace `--use-url-api` with `--use-lua-curl`
+- replace `--no-` prefix instead of `--no` for inversion flag
+
 ## [v1.6.1](https://github.com/jonathanpoelen/gh-md-toc/tree/v1.6.1) (2020-11-11)
 
 - fix --use-cmd-api with a title wich contains a '

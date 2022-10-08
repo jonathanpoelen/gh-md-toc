@@ -125,7 +125,7 @@ parser:option('-u --use-lua-curl', 'Use Lua-cURL implementation')
   :default(0) -- for uninit value
 parser:flag2('--print-api-result', 'Display the html result of the api and exit.')
 parser:flag('--version', 'Output version information and exit')
-  :action(function() print('gh-md-toc 1.6.1') os.exit(0) end)
+  :action(function() print('gh-md-toc 2.0.0') os.exit(0) end)
 
 local args = parser:parse()
 
