@@ -12,18 +12,18 @@
 
 ## [v1.6.1](https://github.com/jonathanpoelen/gh-md-toc/tree/v1.6.1) (2020-11-11)
 
-- fix --use-cmd-api with a title wich contains a '
-- fallback to --cmd-api when lua-curl is not found
+- fix `--use-cmd-api` with a title wich contains a `'`
+- fallback to `--cmd-api` when lua-curl is not found
 
 ## [v1.6.0](https://github.com/jonathanpoelen/gh-md-toc/tree/v1.6.0) (2020-08-21)
 
-- Add `--use-url-api` that disable `--use-cmd-api`
+- add `--use-url-api` that disable `--use-cmd-api`
 - `--use-cmd-api` implicitly enabled by `--cmd-api`
 - `--use-url-api` implicitly enabled by `--url-api`
 
 ## [v1.5.0](https://github.com/jonathanpoelen/gh-md-toc/tree/v1.5.0) (2020-01-15)
 
-- --all-title becomes --all-titles
+- `--all-title` becomes `--all-titles`
 
 ## [v1.4.1](https://github.com/jonathanpoelen/gh-md-toc/tree/v1.4.1) (2019-07-30)
 
